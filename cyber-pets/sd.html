@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>赛博突围战 · 割草生存</title>
+<style>
+:root{
+  --bg:#08070c; --panel:#141220; --panel2:#1c1a2c; --line:#2c2940;
+  --gold:#d4b062; --gold2:#f0d488; --ink:#efe9dc; --ink2:#b7b1a4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);overflow:hidden}
+body{
+  color:var(--ink);font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+  display:flex;align-items:center;justify-content:center;
+}
+#app{
+  position:relative;width:480px;height:840px;flex:none;
+  background:#0d1420;border:1px solid var(--line);overflow:hidden;touch-action:none;
+  display:flex;flex-direction:column;transform-origin:center center;
+}
+/* 顶部 HUD */
+#hud{
+  flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px;
+  background:linear-gradient(180deg,rgba(20,18,32,.96),rgba(20,18,32,.75));
+  border-bottom:1px solid var(--line);z-index:3;
+}
+#hud .who{width:44px;height:44px;border-radius:6px;border:1px solid var(--line);background:#111;flex:none;image-rendering:pixelated}
+#hud .mid{flex:1;min-width:0}
+#hud .nm{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px}
+#hud .nm i{font-style:normal;font-size:10px;color:var(--gold2)}
+#hpWrap{height:9px;background:#2a1520;border:1px solid #4a2030;border-radius:5px;margin:4px 0 3px;overflow:hidden}
+#hp{height:100%;width:100%;background:linear-gradient(90deg,#ff6b6b,#ff9d4d);transition:width .1s}
+#xpWrap{height:6px;background:#181c28;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+#xp{height:100%;width:0;background:linear-gradient(90deg,#3b82f6,#22d3ee);transition:width .12s}
+#heatWrap{position:relative;height:10px;background:#241a10;border:1px solid #5b3a1e;border-radius:5px;overflow:hidden;margin-top:2px}
+#heat{height:100%;width:0;background:linear-gradient(90deg,#f59e0b,#ef4444);transition:width .12s}
+#heatTx{position:absolute;inset:0;font-size:8px;line-height:10px;text-align:center;color:#fff;text-shadow:0 1px 2px #000;letter-spacing:.5px}
+#heatWrap.warn{animation:hw .5s infinite}
+@keyframes hw{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}50%{box-shadow:0 0 8px 2px rgba(239,68,68,.75)}}
+#wind{position:absolute;left:50%;transform:translateX(-50%);top:8px;z-index:5;font-size:10.5px;
+  background:rgba(12,14,22,.8);border:1px solid var(--line);border-radius:12px;padding:3px 12px;color:var(--ink2);white-space:nowrap}
+#wind b{color:#67e8f9}
+#cool{
+  position:absolute;right:14px;bottom:66px;z-index:6;width:74px;height:74px;border-radius:50%;
+  border:2px solid rgba(103,232,249,.65);background:rgba(12,40,52,.55);color:#67e8f9;
+  font-size:12px;font-weight:800;line-height:1.3;cursor:pointer;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;font-family:inherit;
+}
+#cool small{font-size:9px;font-weight:400;opacity:.8}
+#cool:disabled{opacity:.35;border-color:#444;color:#888}
+#cool.ready{box-shadow:0 0 14px rgba(103,232,249,.5)}flex:none}
+#hud .rt b{color:var(--gold2);font-size:15px}
+#hud .rt small{color:var(--ink2);font-size:9px;display:block}
+/* 战场 */
+#cv{display:block;width:100%;height:100%;flex:1 1 auto;min-height:0;background:#0d1420}
+/* 摇杆 */
+#stick{
+  position:absolute;left:16px;bottom:16px;width:112px;height:112px;border-radius:50%;
+  background:rgba(20,18,32,.42);border:1.5px solid rgba(212,176,98,.3);
+  z-index:4;pointer-events:none;opacity:0;transition:opacity .15s;
+}
+#stick.on{opacity:1}
+#knob{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;
+  background:rgba(240,212,136,.35);border:1.5px solid var(--gold2)}
+/* 技能条 */
+#skills{
+  flex:none;display:flex;gap:5px;padding:6px 8px;background:var(--panel);
+  border-top:1px solid var(--line);overflow-x:auto;min-height:58px;align-items:center;
+}
+.sk{
+  flex:0 0 auto;min-width:46px;text-align:center;background:var(--panel2);
+  border:1px solid var(--line);border-radius:6px;padding:3px 5px;position:relative;
+}
+.sk .ic{font-size:16px;line-height:1.1}
+.sk .lv{font-size:9px;color:var(--gold2);font-weight:800}
+.sk .nm2{font-size:8.5px;color:var(--ink2);white-space:nowrap;max-width:52px;overflow:hidden;text-overflow:ellipsis}
+.sk.new{border-color:var(--gold);box-shadow:0 0 8px rgba(212,176,98,.35)}
+.sk.main{border-color:var(--gold);background:linear-gradient(180deg,#2c2440,#1c1830);box-shadow:0 0 10px rgba(212,176,98,.25)}
+.sk.hero{border-color:#7c5cff66;background:#231d38}
+.sk.hero .lv{color:#c4b5fd}
+/* 英雄专属标识 */
+#heroMode{
+  font-size:9.5px;color:#c4b5fd;text-align:center;padding:2px 6px;
+  background:#1c1633;border-top:1px solid #2d2450;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+/* 遮罩通用 */
+.ov{
+  position:absolute;inset:0;z-index:10;background:rgba(8,7,12,.8);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:18px;gap:12px;text-align:center;overflow:auto;
+}
+.ov.hide{display:none}
+.ov h2{font-size:24px;color:var(--gold2);letter-spacing:2px}
+.ov p{font-size:12px;color:var(--ink2);line-height:1.9;max-width:400px}
+.big{font-size:14px;color:var(--ink);line-height:2}
+.btn{
+  font-family:inherit;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;
+  color:#1a1520;background:linear-gradient(180deg,var(--gold2),var(--gold));
+  border:none;border-radius:7px;padding:11px 34px;
+}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--gold2);border:1px solid rgba(212,176,98,.5)}
+/* 选人 */
+#picks{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:440px}
+.pk{width:76px;cursor:pointer;background:var(--panel2);border:1.5px solid var(--line);border-radius:8px;padding:5px 3px 6px;transition:.12s}
+.pk:hover,.pk.on{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,176,98,.25)}
+.pk canvas{width:48px;height:48px;margin:0 auto;display:block;image-rendering:pixelated}
+.pk .n{font-size:10px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk .t{font-size:8.5px;color:var(--ink2)}
+/* 升级三选一 */
+#ups{display:flex;flex-direction:column;gap:8px;width:100%;max-width:400px}
+.up{
+  display:flex;align-items:center;gap:10px;text-align:left;cursor:pointer;
+  background:var(--panel2);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;transition:.12s;
+}
+.up:hover{border-color:var(--gold);background:#232036}
+.up.hero{border-color:#7c5cff88;background:linear-gradient(90deg,#241d3c,#1c1830)}
+.up.hero .tt{color:#c4b5fd}
+.up.hero:hover{border-color:#a78bfa}
+.up .ic{font-size:24px;flex:none;width:32px;text-align:center}
+.up .tx{flex:1;min-width:0}
+.up .tt{font-size:13px;font-weight:700;color:var(--gold2)}
+.up .dd{font-size:10.5px;color:var(--ink2);line-height:1.5;margin-top:2px}
+.up .lv{font-size:11px;font-weight:800;color:var(--gold2);flex:none}
+.ver{position:absolute;right:6px;top:4px;font-size:9px;color:#5b566a;z-index:11}
+.tapfx{position:fixed;width:26px;height:26px;margin:-13px 0 0 -13px;border:2.5px solid var(--gold2);border-radius:50%;pointer-events:none;z-index:99;animation:tapfx .45s ease-out forwards}
+@keyframes tapfx{from{opacity:.95;transform:scale(.4)}to{opacity:0;transform:scale(1.9)}}
+@media (max-height:700px){
+  #hud{padding:5px 8px}#hud .who{width:36px;height:36px}
+  #skills{min-height:48px;padding:4px 6px}.sk .nm2{display:none}
+  #stick{width:92px;height:92px;left:12px;bottom:12px}#knob{width:38px;height:38px;margin:-19px 0 0 -19px}
+  .ov h2{font-size:20px}.ov p{font-size:11px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <span class="ver">v1.0</span>
+
+  <div id="hud">
+    <canvas class="who" id="who" width="64" height="64"></canvas>
+    <div class="mid">
+      <div class="nm"><span id="pName">—</span><i id="pLv">Lv1</i></div>
+      <div id="hpWrap"><div id="hp"></div></div>
+      <div id="xpWrap"><div id="xp"></div></div>
+      <div id="heatWrap"><div id="heat"></div><span id="heatTx">热度 0</span></div>
+    </div>
+    <div class="rt">
+      <b id="tm">00:00</b><small>存活</small>
+      <b id="kk" style="font-size:13px">0</b><small>击杀</small>
+    </div>
+  </div>
+
+  <canvas id="cv" width="480" height="840"></canvas>
+  <div id="wind">舆论风向 <b>↔ 静风</b></div>
+  <button id="cool">降温<small id="coolTx">就绪</small></button>
+  <div id="stick"><div id="knob"></div></div>
+
+  <div id="heroMode">— 专属武学 —</div>
+  <div id="skills"></div>
+
+  <!-- 选人 -->
+  <div class="ov" id="ovPick">
+    <h2>赛博突围战</h2>
+    <div style="position:absolute;top:10px;right:12px;font-size:10px;color:#6b6675">v4 · 专属武学</div>
+    <p class="big">热度风暴吞没了整个赛博丛林。<br>选一位在册者，活下去。</p>
+    <div id="picks"></div>
+    <p style="font-size:11px;line-height:1.9">
+      <b style="color:var(--gold2)">核心玩法 · 热度是把双刃剑</b><br>
+      击杀会累积<b style="color:#ff9d4d">热度</b>：热度越高，敌人刷得越猛、跑得越快，<br>
+      但你的伤害也越高（最高 +38%）。<br>
+      热度满 100 触发 <b style="color:#ef4444">塌房危机</b>：撑过 8 秒 → 全场清空 + 升 1 级。<br>
+      撑不住就按右下角 <b style="color:#67e8f9">降温</b>（或空格）：烧掉热度换清屏（冷却 20s）。<br>
+      每 20 多秒<b style="color:#67e8f9">舆论风向</b>轮转，顺风格外好升级，逆风敌人更硬但热度收益更高。
+    </p>
+    <button class="btn" id="btnGo">出 战</button>
+    <button class="btn ghost" id="btnShuffle" style="padding:8px 20px;font-size:12px">换一批</button>
+  </div>
+
+  <!-- 升级 -->
+  <div class="ov hide" id="ovUp">
+    <h2 style="font-size:19px">升 级</h2>
+    <p style="font-size:11px">选择一项强化</p>
+    <div id="ups"></div>
+  </div>
+
+  <!-- 结算 -->
+  <div class="ov hide" id="ovEnd">
+    <h2 id="endT">被热度吞没</h2>
+    <p class="big" id="endI"></p>
+    <button class="btn" id="btnAgain">再 来</button>
+    <a href="index.html" style="font-size:11px;color:var(--gold2);text-decoration:none">← 返回养成馆</a>
+  </div>
+</div>
+
+<script src="hall-data.js?v=20261022b"></script>
+<script src="heroes.js?v=20261022b"></script>
+<script src="portrait.js?v=20261022b"></script>
+<script src="sd.js?v=20261022b"></script>
+</body>
+</html>

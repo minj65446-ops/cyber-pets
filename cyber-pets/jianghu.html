@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='25' font-size='24'>%F0%9F%8F%AE</text></svg>">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>赛博江湖 · 侠客谱</title>
+<style>
+:root{
+  --gold:#b98c2f; --gold2:#d4b060; --light:#f0d488;
+  --ink:#e8e4da; --ink2:#9c9384; --panel:#15131c; --panel2:#1d1a26;
+  --line:#2e2a3c; --red:#c0392b; --blue:#3b82f6; --green:#22c55e; --purple:#8b5cf6;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#0a0910;overflow:hidden;
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;color:var(--ink)}
+#app{position:absolute;left:0;top:0;width:480px;height:880px;transform-origin:0 0;
+  display:flex;flex-direction:column;background:radial-gradient(120% 60% at 50% 0%,#1d1a2b,#0a0910 70%)}
+
+/* ===== 顶部资源条 ===== */
+#topbar{flex:none;display:flex;align-items:center;gap:6px;padding:7px 10px;
+  background:linear-gradient(180deg,#221d31,#17131f);border-bottom:1px solid var(--line)}
+.res{display:flex;align-items:center;gap:3px;background:#0f0d17;border:1px solid var(--line);
+  border-radius:5px;padding:3px 7px;font-size:10.5px;font-weight:700}
+.res i{font-style:normal;font-size:11px}
+.res b{font-size:11px;color:var(--light)}
+#stageName{font-size:10px;color:var(--ink2);margin-left:auto}
+.back{display:flex;align-items:center;justify-content:center;width:24px;height:22px;flex:none;
+  border-radius:5px;background:#0f0d17;border:1px solid var(--line);color:var(--gold2);
+  font-size:12px;text-decoration:none;font-weight:800;margin-right:2px}
+.back:hover{background:var(--gold2);color:#17131f}
+
+/* ===== 内容区 ===== */
+#main{flex:1;min-height:0;overflow:hidden;position:relative}
+.pg{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding:10px;display:none}
+.pg.on{display:block}
+.pg::-webkit-scrollbar{width:3px}
+.pg::-webkit-scrollbar-thumb{background:#332d45;border-radius:2px}
+
+/* 通用卡 */
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-bottom:8px}
+.card h4{font-size:12px;color:var(--light);margin-bottom:6px;letter-spacing:1px}
+.sub{font-size:10px;color:var(--ink2);line-height:1.7}
+
+/* ===== 主页 · 挂机 ===== */
+#homeArt{height:150px;border-radius:9px;position:relative;overflow:hidden;
+  background:linear-gradient(180deg,#241d33,#14111d);border:1px solid var(--line);margin-bottom:9px}
+#homeArt canvas{position:absolute;inset:0;width:100%;height:100%}
+#idleTxt{position:absolute;left:0;right:0;bottom:0;padding:9px;text-align:center;
+  background:linear-gradient(0deg,rgba(8,7,12,.92),transparent);font-size:10.5px;line-height:1.8}
+#idleTxt b{color:var(--light);font-size:11.5px}
+.btnrow{display:flex;gap:8px;margin-bottom:8px}
+.btn{flex:1;font-family:inherit;font-size:13px;font-weight:800;letter-spacing:1px;cursor:pointer;
+  padding:11px 6px;border:none;border-radius:8px;color:#1a1520;
+  background:linear-gradient(180deg,var(--gold2),var(--gold))}
+.btn:active{transform:translateY(1px)}
+.btn.gh{background:transparent;color:var(--gold2);border:1px solid rgba(212,176,98,.5)}
+.btn.sm{font-size:11px;padding:8px 4px}
+.btn.bl{background:linear-gradient(180deg,#60a5fa,#2563eb);color:#fff}
+.btn.rd{background:linear-gradient(180deg,#f87171,#b91c1c);color:#fff}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* ===== 侠客列表 ===== */
+#heroGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.hc{background:var(--panel2);border:1.5px solid var(--line);border-radius:7px;padding:5px 2px 6px;
+  text-align:center;cursor:pointer;position:relative;overflow:hidden}
+.hc:active{border-color:var(--gold)}
+.hc canvas{width:46px;height:46px;display:block;margin:0 auto;image-rendering:pixelated}
+.hc .n{font-size:9.5px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hc .l{font-size:8px;color:var(--gold2);font-weight:800}
+.hc .tier{position:absolute;left:0;top:0;font-size:8px;font-weight:800;padding:1px 3px;border-radius:0 0 5px 0;color:#15131c}
+.t-R{background:#94a3b8}.t-SR{background:#f0d488}.t-SSR{background:#f0abfc}.t-UR{background:#fdba74}
+.hc.lock{opacity:.42;filter:grayscale(1)}
+.hc .dot{position:absolute;right:2px;top:2px;width:6px;height:6px;border-radius:50%;background:var(--green)}
+.hc.on{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,176,98,.22)}
+
+/* ===== 布阵 ===== */
+#fieldWrap{background:linear-gradient(180deg,#1c1830,#14111d);border:1px solid var(--line);
+  border-radius:9px;padding:9px;margin-bottom:9px;position:relative}
+#field{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.slot{aspect-ratio:1/1.22;border:1.5px dashed #3a3550;border-radius:8px;position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden}
+.slot canvas{width:44px;height:44px;image-rendering:pixelated}
+.slot .nm{font-size:9px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.slot .rm{font-size:8px;color:var(--ink2)}
+.slot.f{border-color:rgba(192,57,43,.45);background:rgba(192,57,43,.05)}
+.slot.b{border-color:rgba(59,130,246,.45);background:rgba(59,130,246,.05)}
+.slot .tag{position:absolute;left:0;top:0;font-size:7.5px;color:#6b6675;padding:2px 4px}
+.slot.has{border-style:solid}
+.rowlabel{display:flex;justify-content:space-between;font-size:9px;color:var(--ink2);margin:0 2px 3px}
+
+/* ===== 闯关 ===== */
+.stg{display:flex;align-items:center;gap:9px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:8px;padding:8px 10px;margin-bottom:7px;cursor:pointer}
+.stg:active{border-color:var(--gold)}
+.stg .no{font-size:15px;font-weight:800;color:var(--light);width:34px;text-align:center}
+.stg .info{flex:1;min-width:0}
+.stg .tt{font-size:11.5px;font-weight:700}
+.stg .dd{font-size:9.5px;color:var(--ink2);margin-top:2px}
+.stg.cur{border-color:var(--gold);background:linear-gradient(90deg,#2a2338,#1d1a26)}
+.stg.done{opacity:.6}
+.stg.lockst{opacity:.35}
+.stg .bn{font-size:10px;color:var(--gold2);font-weight:800;white-space:nowrap}
+
+/* ===== 招募 ===== */
+#recBox{text-align:center;padding:14px 10px}
+#recBox .hint{font-size:10.5px;color:var(--ink2);margin:9px 0}
+#recRes{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
+.rc{background:var(--panel2);border:1.5px solid var(--line);border-radius:7px;padding:5px 2px;position:relative;overflow:hidden}
+.rc canvas{width:48px;height:48px;image-rendering:pixelated}
+.rc .n{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc .tier{position:absolute;left:0;top:0;font-size:8px;font-weight:800;padding:1px 3px;color:#15131c}
+
+/* ===== 底部导航 ===== */
+#tabbar{flex:none;display:flex;background:#14111d;border-top:1px solid var(--line)}
+.tb{flex:1;text-align:center;padding:7px 0 6px;cursor:pointer;font-size:9.5px;color:var(--ink2)}
+.tb i{font-style:normal;display:block;font-size:17px;line-height:1.25}
+.tb.on{color:var(--gold2)}
+.tb.on i{filter:drop-shadow(0 0 5px rgba(212,176,98,.5))}
+
+/* ===== 遮罩 ===== */
+.ov{position:absolute;inset:0;z-index:20;background:rgba(8,7,12,.94);
+  display:flex;flex-direction:column;align-items:center;padding:12px;overflow-y:auto}
+.ov.hide{display:none}
+/* 关键：必须用 !important 压过 #bov 等 ID 选择器里的 display:flex，
+   否则遮罩永远显示，会盖住全部按钮导致点不动 */
+.hide{display:none!important}
+.ov::-webkit-scrollbar{width:3px}
+/* 详情 */
+#dHead{display:flex;gap:11px;align-items:flex-start;width:100%;margin-bottom:9px}
+#dHead canvas{width:82px;height:82px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);image-rendering:pixelated;flex:none}
+#dHead .r{flex:1;min-width:0}
+#dHead .nm{font-size:17px;font-weight:800;color:var(--light)}
+#dHead .tx{font-size:10px;color:var(--ink2);margin:3px 0 5px;line-height:1.6}
+.badge{display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:4px;color:#15131c;margin-right:4px}
+.statline{display:flex;align-items:center;gap:7px;font-size:10px;margin:3px 0}
+.statline .k{width:26px;color:var(--ink2)}
+.statline .bar{flex:1;height:5px;background:#0f0d17;border-radius:3px;overflow:hidden}
+.statline .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2))}
+.statline .v{width:26px;text-align:right;color:var(--light);font-weight:700}
+.skli{display:flex;gap:7px;padding:5px 0;border-top:1px dashed #2e2a3c;font-size:10px;line-height:1.6}
+.skli .rk{flex:none;font-weight:800;color:var(--gold2);width:22px}
+.skli .nm2{flex:none;font-weight:700;width:76px}
+.skli .dd{flex:1;color:var(--ink2)}
+.dcost{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:7px;
+  font-size:10.5px;color:var(--ink2)}
+/* 战斗 */
+#bov{position:absolute;inset:0;z-index:30;background:#07060c;display:flex;flex-direction:column;
+  align-items:center;justify-content:center}
+#bcv{width:100%;max-width:480px;height:300px;image-rendering:auto}
+#btop{position:absolute;left:0;right:0;top:6px;display:flex;justify-content:space-between;padding:0 12px;
+  font-size:10.5px;color:var(--ink2);pointer-events:none}
+#bmid{text-align:center;font-size:11px;color:var(--ink2);margin-bottom:6px;line-height:1.8}
+#blog{width:100%;max-width:460px;height:72px;overflow:hidden;font-size:10px;line-height:1.65;
+  color:var(--ink2);padding:0 12px;margin-bottom:6px}
+#blog div{opacity:.9}
+#bbtns{display:flex;gap:9px}
+#bbtns .btn{min-width:118px;text-align:center}
+#bRes{text-align:center;margin-bottom:8px}
+#bRes .big{font-size:20px;font-weight:800;color:var(--light);letter-spacing:3px}
+#bRes .sml{font-size:11px;color:var(--ink2);margin-top:5px;line-height:1.8}
+#bRes .gain{font-size:11.5px;color:var(--gold2);margin-top:6px;line-height:1.9}
+.ver{position:absolute;right:7px;bottom:5px;font-size:9px;color:#4a4560;z-index:40;pointer-events:none}
+/* toast */
+#toast{position:absolute;left:50%;top:44%;transform:translateX(-50%);z-index:60;pointer-events:none;
+  background:rgba(8,7,12,.92);border:1px solid var(--gold);border-radius:7px;padding:8px 16px;
+  font-size:12px;color:var(--light);opacity:0;transition:opacity .2s}
+#toast.on{opacity:1}
+/* 新获得 */
+#newOv .big{font-size:22px;color:var(--light);font-weight:800;letter-spacing:4px}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="topbar">
+    <a class="back" href="index.html" title="返回赛博人物志主站">←</a>
+    <div class="res"><i>🪙</i><b id="rGold">0</b></div>
+    <div class="res"><i>💠</i><b id="rExp">0</b></div>
+    <div class="res"><i>🎫</i><b id="rTic">0</b></div>
+    <div id="stageName">—</div>
+  </div>
+
+  <div id="main">
+    <!-- 江湖主页 -->
+    <div class="pg on" id="pgHome">
+      <div id="homeArt">
+        <canvas id="homeCv" width="480" height="150"></canvas>
+        <div id="idleTxt">正在结算挂机收益…</div>
+      </div>
+      <div class="btnrow">
+        <button class="btn rd" id="btnQuick">挑 战 关 卡</button>
+        <button class="btn bl" id="btnIdle10">快 速 挂 机</button>
+      </div>
+      <div class="card">
+        <h4>江 湖 状 态</h4>
+        <div class="sub" id="homeInfo">—</div>
+      </div>
+      <div class="card">
+        <h4>玩 法 说 明</h4>
+        <div class="sub">
+          · <b style="color:var(--gold2)">布阵</b>：6 人上阵，前排扛伤、后排输出，同流派有共鸣加成。<br>
+          · <b style="color:var(--gold2)">战斗</b>：全自动回合制，怒气满放成名作。<br>
+          · <b style="color:var(--gold2)">挂机</b>：离线也产收益，回来一键领取。<br>
+          · <b style="color:var(--gold2)">养成</b>：侠客升级 → 突破升星 → 解锁更高战力。<br>
+          · 角色为虚构设定，姓名为同音不同字，不指向任何真实人物。
+        </div>
+      </div>
+    </div>
+
+    <!-- 侠客 -->
+    <div class="pg" id="pgHero">
+      <div class="card" style="padding:7px 9px">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <button class="btn gh sm" data-f="all" style="flex:none;padding:5px 10px">全部</button>
+          <button class="btn gh sm" data-f="own" style="flex:none;padding:5px 10px">已招募</button>
+          <span class="sub" id="heroCnt" style="margin-left:auto"></span>
+        </div>
+      </div>
+      <div id="heroGrid"></div>
+    </div>
+
+    <!-- 布阵 -->
+    <div class="pg" id="pgTeam">
+      <div id="fieldWrap">
+        <div class="rowlabel"><span>后 排 · 输出 · 治疗</span><span id="bpr">威力加成 —</span></div>
+        <div id="field"></div>
+      </div>
+      <div class="card" style="padding:7px 9px">
+        <div class="sub" id="teamTip">点击下方侠客上阵 / 点击阵位卸下</div>
+      </div>
+      <div id="benchGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px"></div>
+    </div>
+
+    <!-- 闯关 -->
+    <div class="pg" id="pgStage">
+      <div class="card">
+        <h4>推 图 进 度</h4>
+        <div class="sub" id="stageInfo">—</div>
+      </div>
+      <div id="stageList"></div>
+    </div>
+
+    <!-- 招募 -->
+    <div class="pg" id="pgRecruit">
+      <div class="card" id="recBox">
+        <h4 style="font-size:13px">百 家 茶 棚</h4>
+        <div class="hint">传闻江湖高手常在此歇脚，递上帖子说不定就肯出山。</div>
+        <div class="btnrow">
+          <button class="btn gh" id="btnRec1">投 帖 一 次<small style="display:block;font-size:9px;font-weight:400">消耗 1 张招募帖</small></button>
+          <button class="btn" id="btnRec10">广 发 十 帖<small style="display:block;font-size:9px;font-weight:400">消耗 10 张 · 必出 SR 以上</small></button>
+        </div>
+        <div class="hint">招募帖可通过推图关卡与在线挂机获得。</div>
+        <div id="recRes"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tabbar">
+    <div class="tb on" data-pg="pgHome"><i>🏯</i>江湖</div>
+    <div class="tb" data-pg="pgHero"><i>📜</i>侠客</div>
+    <div class="tb" data-pg="pgTeam"><i>⚔</i>布阵</div>
+    <div class="tb" data-pg="pgStage"><i>🗺</i>闯关</div>
+    <div class="tb" data-pg="pgRecruit"><i>🎴</i>招募</div>
+  </div>
+
+  <!-- 详情遮罩 -->
+  <div class="ov hide" id="detailOv">
+    <div id="dHead">
+      <canvas id="dFace" width="96" height="96"></canvas>
+      <div class="r">
+        <div class="nm" id="dName">—</div>
+        <div class="tx" id="dTx">—</div>
+        <div id="dBadges"></div>
+      </div>
+    </div>
+    <div class="card" style="width:100%"><h4>资 质</h4><div id="dStats"></div></div>
+    <div class="card" style="width:100%"><h4>招 式</h4><div id="dSkills"></div></div>
+    <div class="card" style="width:100%"><h4>成 名 作</h4>
+      <div class="sub" id="dNp">—</div></div>
+    <div class="card" style="width:100%"><h4>小 传</h4>
+      <div class="sub" id="dLore">—</div>
+      <div class="sub" style="margin-top:5px;color:#c0392b" id="dWeak">—</div></div>
+    <div class="dcost" id="dCost"></div>
+    <div class="btnrow" style="width:100%;margin-top:7px">
+      <button class="btn gh" id="dUp">突 破 突 破</button>
+      <button class="btn gh" id="dTrain">修 炼</button>
+      <button class="btn gh" id="dClose">关 闭</button>
+    </div>
+  </div>
+
+  <!-- 战斗遮罩 -->
+  <div class="ov hide" id="bov">
+    <div id="btop"><span id="bL">我方</span><span id="bR">敌方</span></div>
+    <div id="bmid">—</div>
+    <canvas id="bcv" width="480" height="300"></canvas>
+    <div id="blog"></div>
+    <div id="bbtns">
+      <button class="btn" id="bSpeed" style="flex:none;min-width:100px">×1 加速</button>
+      <button class="btn gh" id="bQuit" style="flex:none;min-width:100px">撤 退</button>
+    </div>
+    <div id="bRes" class="hide" style="position:absolute;inset:0;background:rgba(8,7,12,.96);
+      display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div class="big" id="resBig">胜</div>
+      <div class="sml" id="resSml">—</div>
+      <div class="gain" id="resGain">—</div>
+      <div class="btnrow" style="width:80%;margin-top:12px">
+        <button class="btn" id="resNext">继 续</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 新获得 -->
+  <div class="ov hide" id="newOv">
+    <div class="big">新 侠 客</div>
+    <div class="sub" style="margin:6px 0 12px">以下高手已加入你的阵营</div>
+    <div id="newList" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%"></div>
+    <button class="btn" id="newClose" style="width:70%;margin-top:16px">好 的</button>
+  </div>
+
+  <div id="toast"></div>
+  <div class="ver">v1.1 · 平衡版</div>
+</div>
+
+<script src="hall-data.js?v=20261022d"></script>
+<script src="portrait.js?v=20261022d"></script>
+<script src="jianghu.js?v=20261022d"></script>
+</body>
+</html>

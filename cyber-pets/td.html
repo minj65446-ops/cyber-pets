@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>赛博人物志 · 守卫战</title>
+<style>
+:root{
+  --bg:#0b0a0f; --panel:#141220; --panel2:#1c1a2c; --line:#2c2940;
+  --gold:#d4b062; --gold2:#f0d488; --ink:#efe9dc; --ink2:#b7b1a4;
+  --red:#c1272d; --grn:#3f9e4d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:radial-gradient(1200px 600px at 50% -10%, #16141f, var(--bg));
+  color:var(--ink); font-family:"PingFang SC","Microsoft YaHei",sans-serif;
+  min-height:100vh; margin:0;
+  display:flex; flex-direction:column; align-items:center;
+  overflow:hidden;
+}
+.wrap{
+  width:900px; max-width:100%; height:100vh; max-height:100vh;
+  display:flex; flex-direction:column; padding:6px 8px; gap:6px;
+}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;flex:none}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand h1{font-size:19px;letter-spacing:1px;color:var(--gold2);white-space:nowrap}
+.brand h1 em{font-style:normal;color:var(--ink)}
+.brand .sub{font-size:10.5px;color:var(--ink2);letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-link{font-size:11px;color:var(--gold);text-decoration:none;border:1px solid rgba(212,176,98,.4);padding:6px 12px;border-radius:4px;background:rgba(212,176,98,.06);white-space:nowrap}
+.home-link:hover{background:rgba(212,176,98,.16)}
+/* 顶栏 */
+.hud{display:flex;align-items:center;gap:8px;padding:6px 8px;background:var(--panel);border:1px solid var(--line);border-radius:8px;flex-wrap:wrap;flex:none}
+.hud .stat{display:flex;align-items:center;gap:5px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:13px;font-weight:700;min-width:74px}
+.hud .stat small{font-weight:400;font-size:9px;color:var(--ink2);display:block;letter-spacing:1px;line-height:1.2}
+.hud .stat b{font-size:15px;color:var(--gold2);line-height:1.2}
+.hud .stat.heat b{color:#ff9d4d}
+.hud .stat.life b{color:#ff6b6b}
+.hud .spacer{flex:1}
+button.btn{
+  font-family:inherit;font-size:12.5px;font-weight:700;letter-spacing:1px;cursor:pointer;
+  color:var(--gold2);background:linear-gradient(180deg,#2a2438,#1c1a2c);
+  border:1px solid rgba(212,176,98,.5);border-radius:6px;padding:7px 16px;transition:.15s;
+}
+button.btn:hover{border-color:var(--gold);background:linear-gradient(180deg,#3a3148,#242134)}
+button.btn:disabled{opacity:.4;cursor:default}
+/* 战场：flex 撑满剩余高度，canvas 等比缩放 */
+#stageBox{position:relative;flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:#0d1420;border-radius:8px;overflow:hidden}
+canvas{display:block;max-width:100%;max-height:100%;width:auto;height:auto;image-rendering:pixelated;object-fit:contain;touch-action:manipulation}
+/* 卡槽：固定高度，横向可滚动 */
+.hand{display:flex;gap:8px;padding:6px 8px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto;overflow-y:hidden;flex:none;min-height:104px}
+.card{
+  flex:0 0 84px;cursor:pointer;user-select:none;text-align:center;
+  background:var(--panel2);border:1.5px solid var(--line);border-radius:8px;padding:5px 3px 6px;transition:.12s;position:relative;
+}
+.card:hover{border-color:rgba(212,176,98,.6)}
+.card.sel{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,176,98,.25),0 4px 14px rgba(212,176,98,.15);transform:translateY(-3px)}
+.card.poor{filter:grayscale(.7) brightness(.7)}
+.card canvas{width:48px;height:48px;margin:0 auto;image-rendering:pixelated}
+.card .nm{font-size:10.5px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .cls{font-size:9px;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .cost{font-size:11px;font-weight:800;color:#ff9d4d;margin-top:1px}
+.card .cd{position:absolute;inset:0;background:rgba(5,5,10,.72);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:var(--gold2)}
+.card .tier{position:absolute;top:2px;left:4px;font-size:8px;font-weight:800;letter-spacing:.5px;opacity:.9}
+/* 遮罩 */
+.mask{position:absolute;inset:0;background:rgba(8,7,12,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:16px;z-index:5;overflow:auto}
+.mask h2{font-size:24px;color:var(--gold2);letter-spacing:2px}
+.mask p{font-size:12px;color:var(--ink2);line-height:1.9;max-width:520px}
+.mask .big{font-size:14px;color:var(--ink);line-height:1.9}
+.mask.hide{display:none}
+.hint{font-size:10.5px;color:var(--ink2);padding:2px;letter-spacing:.3px;line-height:1.7;flex:none}
+.hint b{color:var(--gold2)}
+/* 点击反馈圈：点了页面必有金圈，用于确认页面是否收到点击 */
+.tapfx{position:fixed;width:26px;height:26px;margin:-13px 0 0 -13px;border:2.5px solid var(--gold2);border-radius:50%;pointer-events:none;z-index:99;animation:tapfx .45s ease-out forwards}
+@keyframes tapfx{from{opacity:.95;transform:scale(.4)}to{opacity:0;transform:scale(1.9)}}
+/* 版本徽标 */
+.ver{font-size:9px;color:var(--ink2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.5px}
+/* 矮屏（预览面板常见）压缩非关键元素 */
+@media (max-height: 640px){
+  .brand .sub{display:none}
+  .hint{display:none}
+  .hud{padding:4px 6px}
+  .hud .stat{padding:3px 8px;min-width:64px}
+  .hud .stat small{display:none}
+  .hand{min-height:88px;padding:4px 6px}
+  .card{flex:0 0 70px;padding:3px 2px 4px}
+  .card canvas{width:38px;height:38px}
+  .card .nm{font-size:9.5px}
+  .card .cls{display:none}
+  .mask h2{font-size:19px}
+  .mask p{font-size:11px;line-height:1.7}
+}
+@media (max-height: 480px){
+  .brand h1{font-size:15px}
+  .hand{min-height:74px}
+  .card{flex:0 0 58px}
+  .card canvas{width:32px;height:32px}
+  .card .nm{font-size:9px}
+  .card .cost{font-size:10px}
+  .mask .big{display:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>赛博<em>守卫战</em></h1>
+      <span class="ver" id="verTag">v2.1</span>
+      <span class="sub">放置塔防 · 23 位在册者参战 · 全角色虚构</span>
+    </div>
+    <a class="home-link" href="index.html">← 返回养成馆</a>
+  </header>
+
+  <div class="hud">
+    <div class="stat heat"><span>🔥</span><div><small>热度</small><b id="uiHeat">0</b></div></div>
+    <div class="stat"><span>🌊</span><div><small>波次</small><b id="uiWave">1</b></div></div>
+    <div class="stat life"><span>❤</span><div><small>防线</small><b id="uiLife">10</b></div></div>
+    <div class="stat"><span>🏆</span><div><small>纪录</small><b id="uiBest">—</b></div></div>
+    <div class="spacer"></div>
+    <button class="btn" id="btnPause">暂停</button>
+    <button class="btn" id="btnRestart">重开</button>
+  </div>
+
+  <div id="stageBox">
+    <canvas id="cv" width="840" height="470"></canvas>
+    <div class="mask" id="maskStart">
+      <h2>赛博守卫战</h2>
+      <p class="big">热度风暴正在涌向你们的赛博人设。<br>派出在册者们，守住最后一条底线。</p>
+      <p>
+        <b style="color:var(--gold2)">玩法</b>：点下方卡片 → 点草地放置。<br>
+        「带队」位产出热度，其他人负责输出。<br>
+        点击场上人物可花热度升级（最多 ★3）。<br>
+        敌人突破左侧防线会扣 ❤，归零即败。
+      </p>
+      <button class="btn" id="btnStart" style="font-size:15px;padding:12px 40px">开 战</button>
+    </div>
+    <div class="mask hide" id="maskOver">
+      <h2 id="overTitle">防线失守</h2>
+      <p class="big" id="overInfo"></p>
+      <button class="btn" id="btnAgain" style="font-size:15px;padding:12px 40px">再 来</button>
+    </div>
+  </div>
+
+  <div class="hand" id="hand"></div>
+  <div class="hint">提示：<b>狙击</b>全行输出 · <b>背刺</b>单体爆发 · <b>失控</b>范围站撸但自损 · <b>整活</b>减速控场 · <b>带队</b>唯一产热度位 —— 阵容里至少留一个带队。</div>
+</div>
+
+<script src="hall-data.js?v=20261021b"></script>
+<script src="portrait.js?v=20261021b"></script>
+<script src="td.js?v=20261021b"></script>
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>赛博人物志 · 养成馆</title>
+<style>
+:root{
+  --bg:#f4f1ea; --panel:#fffdf8; --ink:#1a1a1a; --ink2:#5b5852; --line:#e2dccf;
+  --shell:#0f1f1c; --shell2:#16352f; --lcd:#c3e88d; --lcd-dim:#8fb866;
+  --red:#e11d48; --amber:#d97706; --purple:#7c3aed; --teal:#0d9488;
+  --shadow:0 2px 0 rgba(0,0,0,.06), 0 12px 30px -18px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;
+  background:
+    radial-gradient(900px 500px at 50% -10%, #fffdf8 0%, transparent 60%),
+    repeating-linear-gradient(0deg,#f4f1ea 0 22px,#f1ede4 22px 23px);
+  color:var(--ink); min-height:100%;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+
+/* ---------- header ---------- */
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:22px}
+.brand h1{font-size:26px;letter-spacing:-.5px;font-weight:800}
+.brand h1 span{color:var(--red)}
+.brand p{font-size:12.5px;color:var(--ink2);margin-top:6px;letter-spacing:.3px}
+.tagline{font-size:11px;background:#fff;border:1px solid var(--line);padding:6px 10px;border-radius:4px;color:var(--ink2)}
+.jump{
+  font-size:11.5px;font-weight:800;letter-spacing:.5px;text-decoration:none;flex:none;
+  color:#fff;background:linear-gradient(135deg,#1a1a1a,#3f3f46);
+  padding:9px 15px;border-radius:5px;border:1px solid #1a1a1a;
+  box-shadow:0 6px 16px -8px rgba(0,0,0,.6);transition:.18s;
+}
+.jump:hover{background:linear-gradient(135deg,#7c2d12,#b45309);border-color:#b45309;transform:translateY(-1px)}
+
+/* layout */
+.stage{display:grid;grid-template-columns:340px 1fr;gap:26px;align-items:start}
+@media (max-width:900px){.stage{grid-template-columns:1fr}}
+
+/* ---------- device ---------- */
+.device{
+  background:linear-gradient(165deg,var(--shell2),var(--shell));
+  border-radius:26px;padding:18px;box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.12);
+  border:1px solid #0a1613; position:sticky; top:20px;
+}
+.screw{position:absolute;width:6px;height:6px;border-radius:50%;background:#385149;box-shadow:inset 0 -1px 0 rgba(255,255,255,.25)}
+.s1{top:10px;left:10px}.s2{top:10px;right:10px}.s3{bottom:10px;left:10px}.s4{bottom:10px;right:10px}
+.screen{
+  background:var(--lcd);border-radius:12px;padding:10px;position:relative;overflow:hidden;
+  box-shadow:inset 0 0 22px rgba(30,60,20,.35), inset 0 2px 6px rgba(0,0,0,.3);
+  image-rendering:pixelated;
+}
+.screen::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.07) 0 1px,transparent 1px 3px);
+  mix-blend-mode:multiply;
+}
+canvas#lcd{width:100%;aspect-ratio:1/1;display:block;border-radius:6px;background:var(--lcd);image-rendering:pixelated}
+.hud{display:flex;justify-content:space-between;font-size:9.5px;color:#26421f;letter-spacing:.6px;font-weight:700;padding:0 2px 6px;font-family:ui-monospace,monospace}
+
+/* stat rows */
+.panel-lcd{background:var(--lcd);border-radius:10px;padding:9px 10px;margin-top:9px;box-shadow:inset 0 1px 4px rgba(0,0,0,.28)}
+.row{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;color:#22391b;font-family:ui-monospace,monospace;margin:4px 0}
+.row .k{width:26px;flex:none}
+.row .bar{flex:1;height:6px;background:rgba(34,57,27,.2);border-radius:1px;overflow:hidden}
+.row .bar i{display:block;height:100%;background:#26421f;transition:width .35s ease}
+.row .v{width:26px;text-align:right}
+
+/* buttons */
+.pad{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}
+button{
+  font-family:inherit;cursor:pointer;border:none;border-radius:8px;font-size:12px;font-weight:700;
+  padding:10px 8px;transition:transform .08s,filter .15s;
+}
+button:active{transform:translateY(1px)}
+.btn-a{background:#c3e88d;color:#16352f}
+.btn-b{background:#1f4640;color:#c3e88d;border:1px solid #2f5f56}
+.btn-a:hover{filter:brightness(1.06)}
+.btn-b:hover{background:#27554d}
+.btn-small{background:#fff;border:1px solid var(--line);color:var(--ink);padding:7px 10px;font-weight:600;font-size:11.5px}
+.btn-small:hover{background:#f7f4ed}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{filter:brightness(1.06)}
+
+/* ---------- right column ---------- */
+.col{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:var(--shadow)}
+.card h3{font-size:13px;letter-spacing:.6px;color:var(--ink2);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h3 b{color:var(--ink)}
+
+/* quote console */
+.console{
+  background:#101c19;border-radius:12px;padding:16px 18px;color:#c3e88d;
+  font-family:ui-monospace,"SFMono-Regular",monospace;font-size:12.5px;line-height:1.7;
+  min-height:96px;border:1px solid #1f3833;
+}
+.console .ln::before{content:"› ";color:#5c8a55}
+.console .ln.new{animation:typein .25s ease both}
+@keyframes typein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* pet picker */
+.picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(142px,1fr));gap:10px}
+.pcard{
+  border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff;cursor:pointer;
+  transition:.16s;position:relative;overflow:hidden;
+}
+.pcard:hover{transform:translateY(-2px);box-shadow:0 10px 22px -14px rgba(0,0,0,.5);border-color:#cfc7b6}
+.pcard.on{border-color:var(--ink);box-shadow:0 0 0 2px rgba(26,26,26,.9) inset}
+.pcard .nm{font-size:13px;font-weight:800;display:flex;align-items:center;gap:5px}
+.pcard .al{font-size:10.5px;color:var(--ink2);margin-top:3px}
+.pcard .tier{position:absolute;top:8px;right:8px;font-size:9.5px;font-weight:800;padding:2px 5px;border-radius:3px;letter-spacing:.5px}
+.tier.UR{background:#1a1a1a;color:#ffe28a}
+.tier.SSR{background:#fef3c7;color:#92400e}
+.tier.SR{background:#e0f2fe;color:#075985}
+.tier.R{background:#f1f5f9;color:#475569}
+.pcard canvas{width:64px;height:64px;display:block;margin:6px auto 0;image-rendering:pixelated}
+.pcard .lock{opacity:.45;filter:grayscale(1)}
+
+/* tabs */
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:16px;flex-wrap:wrap}
+.tab{background:none;border:none;padding:9px 4px;margin-right:14px;font-size:13px;font-weight:700;color:#9b968b;border-bottom:2px solid transparent;border-radius:0}
+.tab.on{color:var(--ink);border-bottom-color:var(--red)}
+.view{display:none}.view.on{display:block}
+
+/* battle */
+.arena{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center}
+.fighter{text-align:center}
+.fighter canvas{width:110px;height:110px;image-rendering:pixelated;background:#f0ece2;border-radius:10px;border:1px solid var(--line)}
+.fighter .fn{font-size:12.5px;font-weight:800;margin-top:8px}
+.hpbar{height:9px;background:#e8e3d7;border-radius:2px;overflow:hidden;margin-top:6px}
+.hpbar i{display:block;height:100%;background:var(--teal);transition:width .3s}
+.hpbar.foe i{background:var(--red)}
+.vs{font-size:11px;font-weight:800;color:#b9b3a5;letter-spacing:1px}
+.logbox{background:#faf8f2;border:1px solid var(--line);border-radius:8px;padding:12px;height:132px;overflow:auto;font-size:12px;line-height:1.85;margin-top:14px;font-family:ui-monospace,monospace;color:#3d3a34}
+.logbox b{color:var(--ink)}
+.moves{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.moves button{background:#fff;border:1px solid var(--line);color:var(--ink);font-size:11.5px;padding:12px 4px;border-radius:8px;line-height:1.4}
+.moves button:hover{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.moves button small{display:block;font-weight:400;opacity:.6;font-size:10px;margin-top:2px}
+
+/* item row */
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.item{border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff;text-align:center;font-size:11.5px;cursor:pointer;transition:.15s}
+.item:hover{border-color:var(--ink);transform:translateY(-1px)}
+.item .ic{font-size:20px;display:block;margin-bottom:4px}
+.item .ef{font-size:10px;color:var(--ink2);margin-top:3px}
+
+/* detail */
+.dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:12.5px;line-height:1.7}
+.dl dt{color:var(--ink2);white-space:nowrap}
+.dl dd{color:var(--ink)}
+.skills{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.skill{border-left:3px solid var(--ink);padding:8px 12px;background:#faf8f2;border-radius:0 8px 8px 0;font-size:12px}
+.skill b{font-size:12.5px}
+.skill .p{float:right;font-family:ui-monospace,monospace;font-weight:700;font-size:11px;color:var(--ink2)}
+.skill p{color:var(--ink2);margin-top:3px;line-height:1.6;font-size:11.5px}
+.quote-big{font-size:17px;font-weight:800;line-height:1.5;padding:14px 16px;border-radius:8px;background:#101c19;color:#c3e88d;margin-top:14px;font-family:ui-monospace,monospace}
+.note{font-size:11px;color:#8d887d;line-height:1.7;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;background:#f0ece2;color:var(--ink2);margin-right:5px}
+.footer{margin-top:34px;font-size:11px;color:#9b968b;line-height:1.9;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <h1>赛博<span>人物志</span></h1>
+      <p>养成 · 词条 · 对战 —— 一台装得下三十一种人生的掌机</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><a href="hall.html" class="jump">✦ 去群像馆看 31 位在册者 →</a><a href="td.html" class="jump" style="background:#132a1c;border-color:#2e6b45;color:#9fe0b3">🎮 守卫战 · 塔防开黑 →</a><a href="sd.html" class="jump" style="background:#1c1633;border-color:#5b4a9e;color:#c4b5fd">🗡️ 突围战 · 割草生存 →</a><a href="jianghu.html" class="jump" style="background:#3a2410;border-color:#8a5a24;color:#f0d9a8">🏮 赛博江湖 · 卡牌放置 →</a><div class="tagline">娱乐化再创作 · 数值为虚构设定 · 非商业用途</div></div>
+  </header>
+
+  <div class="stage">
+    <!-- ================= 左侧：掌机 ================= -->
+    <div class="device" id="device">
+      <span class="screw s1"></span><span class="screw s2"></span><span class="screw s3"></span><span class="screw s4"></span>
+      <div class="hud"><span id="hudL">DAY 1</span><span id="hudR">LV.1 心情 80</span></div>
+      <div class="screen">
+        <canvas id="lcd" width="160" height="160"></canvas>
+      </div>
+      <div class="panel-lcd" id="statPanel"></div>
+      <div class="pad">
+        <button class="btn-a" id="btnFeed">喂食 A</button>
+        <button class="btn-a" id="btnPlay">互动 B</button>
+        <button class="btn-b" id="btnRest">休息 C</button>
+        <button class="btn-b" id="btnNext">下一天 D</button>
+      </div>
+    </div>
+
+    <!-- ================= 右侧 ================= -->
+    <div class="col">
+      <div class="card">
+        <h3><b>状态台</b> · 最近发生的事</h3>
+        <div class="console" id="console"></div>
+      </div>
+
+      <div class="card">
+        <div class="tabs">
+          <button class="tab on" data-tab="home">角色</button>
+          <button class="tab" data-tab="detail">档案</button>
+          <button class="tab" data-tab="battle">对战</button>
+          <button class="tab" data-tab="items">词条</button>
+        </div>
+
+        <!-- 选宠物 -->
+        <section class="view on" id="view-home">
+          <div class="picker" id="picker"></div>
+          <div class="note">点击卡片切换当前角色。同一台掌机，八种人生。<br>
+            每位都有独立的六维、技能和被动。喂食 / 互动 / 休息推进心情与属性，「下一天」触发随机事件。</div>
+        </section>
+
+        <!-- 档案 -->
+        <section class="view" id="view-detail">
+          <div id="detailBody"></div>
+        </section>
+
+        <!-- 对战 -->
+        <section class="view" id="view-battle">
+          <div class="arena">
+            <div class="fighter">
+              <canvas id="faCanvas" width="64" height="64"></canvas>
+              <div class="fn" id="faName">—</div>
+              <div class="hpbar"><i id="faHp" style="width:100%"></i></div>
+            </div>
+            <div class="vs">VS</div>
+            <div class="fighter">
+              <canvas id="fbCanvas" width="64" height="64"></canvas>
+              <div class="fn" id="fbName">—</div>
+              <div class="hpbar foe"><i id="fbHp" style="width:100%"></i></div>
+            </div>
+          </div>
+          <div class="moves">
+            <button data-move="0">硬刚<small>物攻 60</small></button>
+            <button data-move="1">抽象<small>混乱 45</small></button>
+            <button data-move="2">才艺<small>特攻 75</small></button>
+            <button data-move="3">别播了<small>拔线</small></button>
+          </div>
+          <div class="logbox" id="battleLog">点上方招式开打。对手随机抽一位赛博人物。</div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn-small" id="btnNewFoe">换个对手</button>
+            <button class="btn-small" id="btnResetHp">满血复位</button>
+          </div>
+        </section>
+
+        <!-- 词条 -->
+        <section class="view" id="view-items">
+          <div class="items" id="itemList"></div>
+          <div class="note">词条绑定特定角色，喂错了会被嫌弃。道具数量无限，纯玩。</div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    本项目为「赛博人物志」风格的同人式小游戏。收录角色<b>均为虚构</b>：人名已做同音换字处理，<br>
+    地名、平台名、金额等均已虚构化或模糊化，数值、性格、技能一律为娱乐化设定。<br>
+    任何角色都不指向、不代表、不评价任何真实存在的个人，请勿对号入座，请勿用于商业用途。
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
