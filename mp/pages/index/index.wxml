@@ -1,0 +1,6 @@
+<view class="wrap">
+  <canvas class="cv" type="2d" id="cv"
+    bindtouchstart="onTouchStart"
+    bindtouchmove="onTouchMove"
+    bindtouchend="onTouchEnd"></canvas>
+</view>

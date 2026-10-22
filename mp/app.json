@@ -1,0 +1,14 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#0d0b16",
+    "navigationBarTitleText": "赛博江湖",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#0d0b16"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

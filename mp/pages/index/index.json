@@ -1,0 +1,8 @@
+{
+  "usingComponents": {},
+  "navigationBarTitleText": "赛博江湖 · 侠客谱",
+  "navigationBarBackgroundColor": "#0d0b16",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#0d0b16",
+  "disableScroll": true
+}
