@@ -1,5 +1,6 @@
 .workbuddy/
 _bak/
+*.wbapp_*.genie
 *.log
 .DS_Store
 Thumbs.db
