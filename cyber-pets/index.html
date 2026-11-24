@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>赛博人物志 · 养成馆</title>
+<link rel="icon" href="favicon.ico">
 <style>
 :root{
   --bg:#f4f1ea; --panel:#fffdf8; --ink:#1a1a1a; --ink2:#5b5852; --line:#e2dccf;
@@ -30,16 +31,22 @@ header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:2
 .brand p{font-size:12.5px;color:var(--ink2);margin-top:6px;letter-spacing:.3px}
 .tagline{font-size:11px;background:#fff;border:1px solid var(--line);padding:6px 10px;border-radius:4px;color:var(--ink2)}
 .jump{
-  font-size:11.5px;font-weight:800;letter-spacing:.5px;text-decoration:none;flex:none;
-  color:#fff;background:linear-gradient(135deg,#1a1a1a,#3f3f46);
-  padding:9px 15px;border-radius:5px;border:1px solid #1a1a1a;
-  box-shadow:0 6px 16px -8px rgba(0,0,0,.6);transition:.18s;
+  font-size:12px;font-weight:700;letter-spacing:.3px;text-decoration:none;flex:none;
+  color:#c3e88d;background:#16352f;padding:9px 14px;border-radius:8px;border:1px solid #2f5f56;
+  transition:.15s;
 }
-.jump:hover{background:linear-gradient(135deg,#7c2d12,#b45309);border-color:#b45309;transform:translateY(-1px)}
+.jump:hover{background:#1f4640;border-color:#3d7a6c;transform:translateY(-1px)}
+.jump.primary{color:#fff;background:#1a1a1a;border-color:#1a1a1a}
+.jump.primary:hover{background:#333}
 
 /* layout */
 .stage{display:grid;grid-template-columns:340px 1fr;gap:26px;align-items:start}
-@media (max-width:900px){.stage{grid-template-columns:1fr}}
+@media (max-width:900px){
+  .stage{grid-template-columns:1fr}
+  /* 手机上把右侧栏提到前面：第一屏直接是「赛季卡 + 签约位 + 流量位」 */
+  .stage .col{order:-1}
+  .device{position:static}
+}
 
 /* ---------- device ---------- */
 .device{
@@ -60,15 +67,15 @@ header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:2
   mix-blend-mode:multiply;
 }
 canvas#lcd{width:100%;aspect-ratio:1/1;display:block;border-radius:6px;background:var(--lcd);image-rendering:pixelated}
-.hud{display:flex;justify-content:space-between;font-size:9.5px;color:#26421f;letter-spacing:.6px;font-weight:700;padding:0 2px 6px;font-family:ui-monospace,monospace}
+.hud{display:flex;justify-content:space-between;font-size:9.5px;color:var(--lcd-dim);letter-spacing:.6px;font-weight:700;padding:0 2px 6px;font-family:ui-monospace,monospace}
 
 /* stat rows */
 .panel-lcd{background:var(--lcd);border-radius:10px;padding:9px 10px;margin-top:9px;box-shadow:inset 0 1px 4px rgba(0,0,0,.28)}
-.row{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;color:#22391b;font-family:ui-monospace,monospace;margin:4px 0}
-.row .k{width:26px;flex:none}
-.row .bar{flex:1;height:6px;background:rgba(34,57,27,.2);border-radius:1px;overflow:hidden}
+.row{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:#22391b;font-family:ui-monospace,monospace;margin:5px 0}
+.row .k{width:32px;flex:none}
+.row .bar{flex:1;height:7px;background:rgba(34,57,27,.2);border-radius:1px;overflow:hidden}
 .row .bar i{display:block;height:100%;background:#26421f;transition:width .35s ease}
-.row .v{width:26px;text-align:right}
+.row .v{width:30px;text-align:right}
 
 /* buttons */
 .pad{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}
@@ -161,7 +168,45 @@ button:active{transform:translateY(1px)}
 .quote-big{font-size:17px;font-weight:800;line-height:1.5;padding:14px 16px;border-radius:8px;background:#101c19;color:#c3e88d;margin-top:14px;font-family:ui-monospace,monospace}
 .note{font-size:11px;color:#8d887d;line-height:1.7;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
 .badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;background:#f0ece2;color:var(--ink2);margin-right:5px}
+/* ---------- 赛季卡 ---------- */
+.season{background:linear-gradient(180deg,#fffdf8,#fbf7ee)}
+.season h3{margin-bottom:10px}
+.wkbar{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin:2px 0 12px}
+.wkbar i{height:18px;border-radius:3px;background:#e8e3d7;position:relative;font-style:normal;
+  font-size:10px;font-weight:800;color:#a8a294;display:flex;align-items:center;justify-content:center}
+.wkbar i.done{background:#16352f;color:#c3e88d}
+.wkbar i.now{background:var(--red);color:#fff}
+.sgoal{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.sgoal div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:11.5px;color:var(--ink2)}
+.sgoal div b{display:block;font-size:18px;color:var(--ink);letter-spacing:-.3px;margin-top:2px}
+.srow{margin-top:10px}
+.srow .sk{font-size:11px;font-weight:800;color:var(--ink2);letter-spacing:.5px;margin-bottom:6px}
+.spool,.sslots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sp{background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center;cursor:pointer;transition:.15s}
+.sp:hover{border-color:var(--ink);transform:translateY(-1px)}
+.sp.on{border-color:#16352f;background:#f2f7ec}
+.sp .n{font-size:11.5px;font-weight:800}
+.sp .t{font-size:10.5px;color:var(--ink2);margin-top:3px}
+.sp .b{font-size:10.5px;font-weight:800;margin-top:6px;padding:4px 0;border-radius:5px;background:#f0ece2;color:#6b665b}
+.sp .b.can{background:#16352f;color:#c3e88d}
+.sp.signed{opacity:.75}
+.sl{background:#fff;border:1px dashed var(--line);border-radius:8px;padding:10px 6px;text-align:center;
+  font-size:10.5px;color:#a8a294;cursor:pointer;min-height:52px;display:flex;align-items:center;justify-content:center}
+.sl.has{border-style:solid;border-color:#16352f;color:var(--ink);font-weight:800;background:#f2f7ec}
+/* 赛季结算弹层 */
+.ov{position:fixed;inset:0;background:rgba(20,18,14,.62);display:flex;align-items:center;justify-content:center;padding:20px;z-index:60}
+.ov.hide{display:none}
+.ovbox{background:var(--panel);border-radius:14px;padding:22px;max-width:420px;width:100%;box-shadow:0 30px 60px -20px rgba(0,0,0,.5)}
+.ovbox h2{font-size:20px;letter-spacing:-.3px;margin-bottom:6px}
+.ovbox .rk{font-size:44px;font-weight:800;letter-spacing:-2px;color:var(--red);line-height:1}
+.ovbox p{font-size:12.5px;color:var(--ink2);line-height:1.9;margin-top:10px}
+.ovbox button{margin-top:16px;width:100%;background:#16352f;color:#c3e88d;padding:12px;border-radius:8px;font-weight:800}
 .footer{margin-top:34px;font-size:11px;color:#9b968b;line-height:1.9;text-align:center}
+/* Toy 容器内的状态条（普通网页下整条隐藏） */
+.toybar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:10px;
+  border-top:1px dashed var(--line);font-size:11px;color:var(--ink2)}
+.toybar.hide{display:none}
+.toybar .btn-small{margin-left:auto}
 </style>
 </head>
 <body>
@@ -170,9 +215,9 @@ button:active{transform:translateY(1px)}
   <header class="top">
     <div class="brand">
       <h1>赛博<span>人物志</span></h1>
-      <p>养成 · 词条 · 对战 —— 一台装得下三十一种人生的掌机</p>
+      <p>养成 · 词条 · 对战 —— 一台装得下 53 位在册者的掌机</p>
     </div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><a href="hall.html" class="jump">✦ 去群像馆看 31 位在册者 →</a><a href="td.html" class="jump" style="background:#132a1c;border-color:#2e6b45;color:#9fe0b3">🎮 守卫战 · 塔防开黑 →</a><a href="sd.html" class="jump" style="background:#1c1633;border-color:#5b4a9e;color:#c4b5fd">🗡️ 突围战 · 割草生存 →</a><a href="jianghu.html" class="jump" style="background:#3a2410;border-color:#8a5a24;color:#f0d9a8">🏮 赛博江湖 · 卡牌放置 →</a><div class="tagline">娱乐化再创作 · 数值为虚构设定 · 非商业用途</div></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><a href="hall.html" class="jump primary">✦ 去群像馆看 53 位在册者 →</a><a href="td.html" class="jump">🎮 守卫战 · 塔防开黑 →</a><a href="sd.html" class="jump">🗡️ 突围战 · 割草生存 →</a><a href="jianghu.html" class="jump">🏮 赛博江湖 · 卡牌放置 →</a><div class="tagline">娱乐化再创作 · 数值为虚构设定 · 非商业用途</div></div>
   </header>
 
   <div class="stage">
@@ -194,6 +239,30 @@ button:active{transform:translateY(1px)}
 
     <!-- ================= 右侧 ================= -->
     <div class="col">
+      <div class="card season" id="seasonCard">
+        <h3><b>第 <span id="sNo">1</span> 赛季</b> · 第 <span id="sWeek">1</span>/12 周 · 本周还剩 <span id="sLeft">7</span> 天</h3>
+        <div class="wkbar" id="wkBar"></div>
+        <div class="sgoal">
+          <div>粉丝（目标 4000）<b id="sFans">0</b></div>
+          <div>已签约（目标 7）<b id="sSign">0</b></div>
+          <div>本周新增 / 目标<b id="sWeekFans">0 / 333</b></div>
+        </div>
+        <div class="srow">
+          <div class="sk">本周签约位 · 每周轮换 3 位，点一下签约</div>
+          <div class="spool" id="sPool"></div>
+        </div>
+        <div class="srow">
+          <div class="sk">流量位 · 已签约角色每天产粉，点格子切换</div>
+          <div class="sslots" id="sSlots"></div>
+        </div>
+        <div class="note">签约条件：该角色心情 ≥ 60。12 周一循环，第 12 周结束清算并保留部分粉丝进入下一季。</div>
+        <div class="toybar hide" id="toyBar">
+          <span id="toyWho">Toy 已连接</span>
+          <span id="toyTri"></span>
+          <button class="btn-small" id="btnShare">生成分享图</button>
+        </div>
+      </div>
+
       <div class="card">
         <h3><b>状态台</b> · 最近发生的事</h3>
         <div class="console" id="console"></div>
@@ -257,13 +326,24 @@ button:active{transform:translateY(1px)}
   </div>
 
   <div class="footer">
-    本项目为「赛博人物志」风格的同人式小游戏。收录角色<b>均为虚构</b>：人名已做同音换字处理，<br>
-    地名、平台名、金额等均已虚构化或模糊化，数值、性格、技能一律为娱乐化设定。<br>
-    任何角色都不指向、不代表、不评价任何真实存在的个人，请勿对号入座，请勿用于商业用途。
+    本项目为「赛博人物志」风格的同人式小游戏。收录角色<b>均为虚构</b>：人名、地名、平台名、金额等全部为虚构设定，<br>
+    数值、性格、技能一律为娱乐化创作，不指向、不代表、不评价任何真实存在的人物或事件。请勿对号入座，请勿用于商业用途。
   </div>
 </div>
 
-<script src="data.js"></script>
-<script src="app.js"></script>
+<!-- 赛季清算 -->
+<div class="ov hide" id="seasonOv">
+  <div class="ovbox">
+    <h2 id="ovTitle">第 1 赛季 · 清算</h2>
+    <div class="rk" id="ovRank">A</div>
+    <p id="ovBody"></p>
+    <button id="ovNext">开启下一赛季</button>
+  </div>
+</div>
+
+<script src="toy-bridge.js?v=20261124d"></script>
+<script src="pixel.js?v=20261124d"></script>
+<script src="data.js?v=20261124d"></script>
+<script src="app.js?v=20261124d"></script>
 </body>
 </html>

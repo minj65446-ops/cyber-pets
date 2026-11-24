@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>赛博突围战 · 割草生存</title>
+<link rel="icon" href="favicon.ico">
 <style>
 :root{
   --bg:#08070c; --panel:#141220; --panel2:#1c1a2c; --line:#2c2940;
@@ -29,7 +30,7 @@ body{
 #hud .who{width:44px;height:44px;border-radius:6px;border:1px solid var(--line);background:#111;flex:none;image-rendering:pixelated}
 #hud .mid{flex:1;min-width:0}
 #hud .nm{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px}
-#hud .nm i{font-style:normal;font-size:10px;color:var(--gold2)}
+#hud .nm i{font-style:normal;font-size:11px;color:var(--gold2)}
 #hpWrap{height:9px;background:#2a1520;border:1px solid #4a2030;border-radius:5px;margin:4px 0 3px;overflow:hidden}
 #hp{height:100%;width:100%;background:linear-gradient(90deg,#ff6b6b,#ff9d4d);transition:width .1s}
 #xpWrap{height:6px;background:#181c28;border:1px solid var(--line);border-radius:4px;overflow:hidden}
@@ -52,7 +53,7 @@ body{
 #cool:disabled{opacity:.35;border-color:#444;color:#888}
 #cool.ready{box-shadow:0 0 14px rgba(103,232,249,.5)}flex:none}
 #hud .rt b{color:var(--gold2);font-size:15px}
-#hud .rt small{color:var(--ink2);font-size:9px;display:block}
+#hud .rt small{color:var(--ink2);font-size:10px;display:block}
 /* 战场 */
 #cv{display:block;width:100%;height:100%;flex:1 1 auto;min-height:0;background:#0d1420}
 /* 摇杆 */
@@ -92,6 +93,8 @@ body{
   padding:18px;gap:12px;text-align:center;overflow:auto;
 }
 .ov.hide{display:none}
+/* 选人阶段战斗元素本来就没有意义，藏着，别在标题上方露半截 */
+body.picking #hud,body.picking #cool,body.picking #stick,body.picking #skills,body.picking #heroMode,body.picking #wind,body.picking #app > .ver{display:none}
 .ov h2{font-size:24px;color:var(--gold2);letter-spacing:2px}
 .ov p{font-size:12px;color:var(--ink2);line-height:1.9;max-width:400px}
 .big{font-size:14px;color:var(--ink);line-height:2}
@@ -104,11 +107,19 @@ body{
 .btn.ghost{background:transparent;color:var(--gold2);border:1px solid rgba(212,176,98,.5)}
 /* 选人 */
 #picks{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:440px}
+@media (max-width:520px){
+  /* 6 张卡固定 3x2，避免出现 5+1 那种落单的一行 */
+  #picks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-width:100%;width:100%}
+  .pk{width:auto}
+  .pk canvas{width:56px;height:56px}
+  .pk .n{font-size:11.5px}
+  .pk .t{font-size:10.5px}
+}
 .pk{width:76px;cursor:pointer;background:var(--panel2);border:1.5px solid var(--line);border-radius:8px;padding:5px 3px 6px;transition:.12s}
 .pk:hover,.pk.on{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,176,98,.25)}
 .pk canvas{width:48px;height:48px;margin:0 auto;display:block;image-rendering:pixelated}
-.pk .n{font-size:10px;font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pk .t{font-size:8.5px;color:var(--ink2)}
+.pk .n{font-size:11px;font-weight:700;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk .t{font-size:10px;color:var(--ink2);margin-top:1px}
 /* 升级三选一 */
 #ups{display:flex;flex-direction:column;gap:8px;width:100%;max-width:400px}
 .up{
@@ -135,7 +146,7 @@ body{
 }
 </style>
 </head>
-<body>
+<body class="picking">
 <div id="app">
   <span class="ver">v1.0</span>
 
@@ -171,12 +182,12 @@ body{
       <b style="color:var(--gold2)">核心玩法 · 热度是把双刃剑</b><br>
       击杀会累积<b style="color:#ff9d4d">热度</b>：热度越高，敌人刷得越猛、跑得越快，<br>
       但你的伤害也越高（最高 +38%）。<br>
-      热度满 100 触发 <b style="color:#ef4444">塌房危机</b>：撑过 8 秒 → 全场清空 + 升 1 级。<br>
+      热度满 100 触发 <b style="color:#ef4444">翻车危机</b>：撑过 8 秒 → 全场清空 + 升 1 级。<br>
       撑不住就按右下角 <b style="color:#67e8f9">降温</b>（或空格）：烧掉热度换清屏（冷却 20s）。<br>
       每 20 多秒<b style="color:#67e8f9">舆论风向</b>轮转，顺风格外好升级，逆风敌人更硬但热度收益更高。
     </p>
-    <button class="btn" id="btnGo">出 战</button>
-    <button class="btn ghost" id="btnShuffle" style="padding:8px 20px;font-size:12px">换一批</button>
+    <button class="btn" id="btnGo" style="width:180px">出 战</button>
+    <button class="btn ghost" id="btnShuffle" style="width:180px;padding:9px 20px;font-size:12.5px">换 一 批</button>
   </div>
 
   <!-- 升级 -->
@@ -195,9 +206,10 @@ body{
   </div>
 </div>
 
-<script src="hall-data.js?v=20261022b"></script>
-<script src="heroes.js?v=20261022b"></script>
-<script src="portrait.js?v=20261022b"></script>
-<script src="sd.js?v=20261022b"></script>
+<script src="hall-data.js?v=20261124d"></script>
+<script src="heroes.js?v=20261124d"></script>
+<script src="pixel.js?v=20261124d"></script>
+<script src="portrait.js?v=20261124d"></script>
+<script src="sd.js?v=20261124d"></script>
 </body>
 </html>

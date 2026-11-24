@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>赛博群像馆 · CYBER PERSONA ARCHIVE</title>
+<link rel="icon" href="favicon.ico">
 <style>
 :root{
   --bg:#08070c; --bg2:#0e0d15; --card:#141220; --card2:#1a1826;
@@ -79,6 +80,10 @@ header{
 
 /* ---------- 卡池 ---------- */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(186px,1fr));gap:14px}
+@media (max-width:560px){
+  .grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .scard canvas{width:56px;height:56px}
+}
 .scard{
   position:relative;background:linear-gradient(168deg,var(--card2),var(--card));
   border:1px solid var(--line);border-radius:6px;padding:14px 13px 13px;cursor:pointer;
@@ -106,8 +111,8 @@ header{
   width:104px;height:104px;display:block;margin:16px auto 8px;image-rendering:pixelated;
   border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.06), 0 10px 26px -12px rgba(0,0,0,.9);
 }
-.scard .nm{text-align:center;font-size:14px;font-weight:800;letter-spacing:.5px}
-.scard .ru{text-align:center;font-size:9.5px;color:var(--ink3);margin-top:3px;font-family:ui-monospace,monospace;letter-spacing:.6px;min-height:13px}
+.scard .nm{text-align:center;font-size:12px;font-weight:800;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 2px}
+.scard .ru{text-align:center;font-size:10.5px;color:var(--ink3);margin-top:3px;font-family:ui-monospace,monospace;letter-spacing:.6px;min-height:13px}
 .scard .mini{display:flex;gap:3px;justify-content:center;margin-top:9px}
 .scard .mini span{width:5px;height:5px;border-radius:1px;background:var(--gold);opacity:.25}
 .scard .mini span.on{opacity:.95}
@@ -331,13 +336,13 @@ button.btn:disabled{opacity:.35;cursor:not-allowed}
       <h3>规则</h3>
       <div style="font-size:12.5px;line-height:2;color:var(--ink2)">
         <p><b style="color:var(--gold2)">一、生态位</b>　七生态位对应七种内容生态位。Saber 是正面硬刚的，Caster 靠知识，Berserker 放弃理智换输出，Assassin 靠背刺。旁观位（WITNESS）不参战。</p>
-        <p style="margin-top:12px"><b style="color:var(--gold2)">二、数值</b>　力 / 耐 / 敏 / 魔 / 幸 / 宝。幸是「运气」，但对这批在册者来说，它更像「会不会突然被举报」。</p>
+        <p style="margin-top:12px"><b style="color:var(--gold2)">二、数值</b>　力 / 耐 / 敏 / 魔 / 幸 / 宝。幸是「运气」，但对这批在册者来说，它更像「会不会突然被质询」。</p>
         <p style="margin-top:12px"><b style="color:var(--gold2)">三、成名作</b>　每位在册者的成名作，都是他人生里那个「一句话概括」的时刻。成名作不是超能力，是把一段经历压缩成一击。</p>
         <p style="margin-top:12px"><b style="color:var(--gold2)">四、交集</b>　同场的两位在册者若有旧交，全数值 +12%。交集越多，阵容越强；但交集往往也意味着「同一种塌法」。</p>
-        <p style="margin-top:12px"><b style="color:var(--gold2)">五、敌方 Master</b>　每回合随机一位介入：甲方改需求、平台拔线、对家买热搜、十年老粉翻旧账、匿名举报者叠风险、数据女工刷量，还有品牌方公关、同行前辈，以及最难对付的那位——当年的自己。风险条会随回合累积，并转化为额外伤害。</p>
+        <p style="margin-top:12px"><b style="color:var(--gold2)">五、敌方 Master</b>　每回合随机一位介入：甲方改需求、平台拔线、对家买热搜、十年老粉翻旧账、匿名质询者叠风险、数据女工刷量，还有品牌方公关、同行前辈，以及最难对付的那位——当年的自己。风险条会随回合累积，并转化为额外伤害。</p>
         <p style="margin-top:12px"><b style="color:var(--gold2)">六、封印</b>　标注 SEALED 的在册者可以查看，不能编入阵容。这不是遗漏，是选择。</p>
         <p style="margin-top:12px"><b style="color:var(--gold2)">七、难度</b>　敌方耐久 = 340 + 阵容人数 × 120。「舆论场」不是某一个具体的人，是这个行业本身。一个人打不赢，七个人也未必。</p>
-        <p style="margin-top:12px"><b style="color:var(--gold2)">八、声明</b>　本作收录的 31 位在册者<b>均为虚构角色</b>：人名已全部做同音换字处理，地名、平台名、机构名、金额数字均已虚构化或模糊化，生态位、数值、成名作、台词一律为娱乐化设定。任何角色都<b>不指向、不代表、不评价</b>任何真实存在的个人，如有读音相近纯属谐音巧合，请勿对号入座。其中涉及违法违规、已被平台永久封禁的人物一律标注 SEALED，仅作档案留存与警示，不提供任何正面评价。本项目为同人企划，非商业用途。</p>
+        <p style="margin-top:12px"><b style="color:var(--gold2)">八、声明</b>　本作收录的 <b>53 位在册者</b>（45 位可编入阵容，8 位 SEALED 仅可查阅）<b>均为虚构角色</b>：人名、地名、平台名、机构名、金额数字全部为虚构设定，生态位、数值、成名作、台词一律为娱乐化创作。任何角色都<b>不指向、不代表、不评价</b>任何真实存在的人物或事件，如有雷同纯属巧合，请勿对号入座。标注 SEALED 的角色仅为玩法设定（不可编队），不含任何现实指向。本项目为同人企划，非商业用途。</p>
         <p style="margin-top:12px"><b style="color:var(--gold2)">九、关于「同音不同字」</b>　为了把真实人物彻底排除在外，本项目采用谐音换字：保留口耳相传的读音梗，换掉全部汉字，使每个角色在文本层面成为一个独立的新名字。这样玩梗的乐趣还在，指向性已经消失——这也是本项目可以作为小程序传播的前提。</p>
       </div>
     </div>
@@ -351,8 +356,9 @@ button.btn:disabled{opacity:.35;cursor:not-allowed}
   </div>
 </div>
 
-<script src="hall-data.js"></script>
-<script src="portrait.js"></script>
-<script src="hall-app.js"></script>
+<script src="hall-data.js?v=20261124d"></script>
+<script src="pixel.js?v=20261124d"></script>
+<script src="portrait.js?v=20261124d"></script>
+<script src="hall-app.js?v=20261124d"></script>
 </body>
 </html>

@@ -33,6 +33,7 @@ const ARCH_CFG = {
   charge: { cd: 1.9, dmg: 52, spd: 760, range: 900, pierce: 99, color: '#67e8f9' },
   wave:   { cd: 1.5, dmg: 20, spd: 300, range: 300, r: 300, color: '#fdba74' },
   beam:   { cd: .12, dmg: 4.2, range: 340, r: 16, color: '#f472b6' },
+  bomb:   { cd: .82, dmg: 26, range: 420, r: 76, color: '#fb923c' },
 };
 
 /* 技能池：英雄专属 6 个 + 全员通用 3 个 */

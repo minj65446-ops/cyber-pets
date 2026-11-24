@@ -14,7 +14,7 @@ function showView(key) {
   currentTab = key;
   $$('.tab').forEach(x => x.classList.toggle('on', x.dataset.tab === key));
   $$('.view').forEach(v => v.classList.toggle('on', v.id === 'view-' + key));
-  try { sessionStorage.setItem('fate-tab', key); } catch (e) { /* 隐私模式忽略 */ }
+  try { sessionStorage.setItem('cyberpets:fate-tab', key); } catch (e) { /* 隐私模式忽略 */ }
 }
 $$('.tab').forEach(t => {
   t.onclick = () => showView(t.dataset.tab);
@@ -23,14 +23,14 @@ $('#backBtn').onclick = () => showView(currentTab === 'detail' ? 'hall' : curren
 
 // 从养成馆回来时恢复上次停留的标签页
 try {
-  const saved = sessionStorage.getItem('fate-tab');
+  const saved = sessionStorage.getItem('cyberpets:fate-tab') || sessionStorage.getItem('fate-tab');
   if (saved && saved !== 'detail' && $(`#view-${saved}`)) showView(saved);
 } catch (e) { /* 隐私模式忽略 */ }
 
 /* ---------------- 群像馆 ---------------- */
 let filter = 'all';
 try {
-  const f = sessionStorage.getItem('fate-filter');
+  const f = sessionStorage.getItem('cyberpets:fate-filter') || sessionStorage.getItem('fate-filter');
   if (f && (f === 'all' || CLASSES[f])) filter = f;
 } catch (e) { /* 隐私模式忽略 */ }
 
@@ -46,7 +46,7 @@ function renderFilters() {
   $$('#filters .chip').forEach(b => {
     b.onclick = () => {
       filter = b.dataset.f;
-      try { sessionStorage.setItem('fate-filter', filter); } catch (e) {}
+      try { sessionStorage.setItem('cyberpets:fate-filter', filter); } catch (e) {}
       $$('#filters .chip').forEach(x => x.classList.toggle('on', x === b));
       renderGrid();
     };
@@ -85,13 +85,52 @@ function renderGrid() {
       ${s.nc ? '<div class="seal">SEALED</div>' : ''}
     `;
     const cvs = d.querySelector('canvas');
-    drawFigure(cvs.getContext('2d'), s, 64);
+    drawFigure(cvs.getContext('2d'), s, 64, { still: true });
     d.onclick = () => openDetail(s.id);
     box.appendChild(d);
+    idleFaces.push({ cv: cvs, fig: s, phase: idleFaces.length * 110 });
   });
+
+  /* 待机动画：只重绘进入视口的卡片，5fps，相位按序号错开，不会整屏一起点头 */
+  if (!gridTickerOn) {
+    gridTickerOn = true;
+    PX.ticker.add(t => {
+      for (let i = 0; i < idleFaces.length; i++) {
+        const f = idleFaces[i];
+        if (!f.visible) continue;
+        const c2 = f.cv.getContext('2d');
+        drawFigure(c2, f.fig, 64, { t: t + f.phase });
+      }
+    });
+  }
+  observeFaces();
+}
+
+/* 只动画「在视口里」的卡片：53 张全量重绘在手机上会掉帧 */
+let gridTickerOn = false;
+let idleFaces = [];
+let faceObs = null;
+function observeFaces() {
+  if (!('IntersectionObserver' in window)) {
+    idleFaces.forEach(f => { f.visible = true; });
+    return;
+  }
+  if (!faceObs) {
+    faceObs = new IntersectionObserver(entries => {
+      entries.forEach(en => {
+        const item = idleFaces.find(f => f.cv === en.target);
+        if (item) item.visible = en.isIntersecting;
+      });
+    }, { rootMargin: '80px' });
+  } else {
+    faceObs.disconnect();
+  }
+  idleFaces.forEach(f => { f.visible = false; faceObs.observe(f.cv); });
 }
 
 /* ---------------- 详情 ---------------- */
+let heroTickerOn = false;
+let curDetailId = null;
 function openDetail(id) {
   const s = FIGURES.find(x => x.id === id);
   const c = CLASSES[s.class];
@@ -156,7 +195,17 @@ function openDetail(id) {
     </div>
   `;
   const hc = $('#heroC');
-  drawFigure(hc.getContext('2d'), s, 120);
+  drawFigure(hc.getContext('2d'), s, 120, { still: true });
+  if (!heroTickerOn) {
+    heroTickerOn = true;
+    PX.ticker.add(t => {
+      const cv = document.getElementById('heroC');
+      if (!cv) return;
+      const cur = FIGURES.find(x => x.id === curDetailId);
+      if (cur) drawFigure(cv.getContext('2d'), cur, 120, { t: t });
+    });
+  }
+  curDetailId = id;
   // 详情页不写入 currentTab，返回卡池时仍回到原标签
   $$('.tab').forEach(x => x.classList.toggle('on', false));
   $$('.view').forEach(v => v.classList.toggle('on', v.id === 'view-detail'));
@@ -191,7 +240,8 @@ function renderSlots() {
     }
     box.appendChild(d);
   });
-  $('#cnt').textContent = FIGURES.length;
+  PX.ticker.start();
+$('#cnt').textContent = FIGURES.length;
   if ($('#seatCnt')) $('#seatCnt').textContent = FIGURES.filter(s => !s.nc).length;
 }
 
@@ -287,7 +337,7 @@ function step() {
     case '平台审核': atkMul = 0.55; break;
     case '对家 MCN': atkMul = 0.8; break;
     case '十年老粉': dmgTaken = 1.15; break;
-    case '匿名举报者': warState.risk += 12; break;
+    case '匿名质询者': warState.risk += 12; break;
     case '数据女工': warState.enemy.hp = Math.min(warState.enemy.hpMax, warState.enemy.hp + 40); break;
     case '甲方': atkMul = 1.1; break;
     case '品牌方公关': warState.enemy.hp = Math.min(warState.enemy.hpMax, warState.enemy.hp + 55); break;

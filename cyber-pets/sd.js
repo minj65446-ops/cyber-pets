@@ -17,6 +17,32 @@ FIGURES.forEach(s => {
 
 /* ---------- 英雄武学由 heroes.js 提供：UNIQUE / ARCH_CFG ---------- */
 
+/* ---------- 普攻形态：没有专属武学的角色也要看得出区别 ----------
+   优先级：专属武学 art > 手持道具映射 > 生态位映射 > 弹幕兜底。
+   这样 P2 补武学时只需填技能名与数值，不用再改动作层。 */
+const PROP_ART = {
+  bow: 'pierce', spear: 'charge', fishrod: 'pierce', pointer: 'pierce',
+  pan: 'wave', guitar: 'wave', megaphone: 'spread', ladle: 'wave', pot: 'bomb',
+  fist: 'melee', dumbbell: 'melee', cleaver: 'melee', wrench: 'melee', hammer: 'melee',
+  scissors: 'spin', whip: 'spin',
+  keyboard: 'beam', camera: 'beam', tablet: 'beam', phone: 'gun', lipstick: 'gun',
+  controller: 'bomb', fridge: 'bomb', sack: 'bomb', basket: 'orbit', clipboard: 'orbit',
+  mic: 'spread', book: 'orbit', ledger: 'orbit', popcorn: 'spread', watch: 'zone',
+  mask: 'zone', ring: 'zone', beads: 'zone', flag: 'charge',
+};
+const CLASS_ART = {
+  hard: 'melee', rush: 'melee', frenzy: 'melee',
+  snipe: 'pierce', stab: 'spin',
+  lead: 'orbit', stunt: 'wave', witness: 'zone',
+};
+function artOf(fig) {
+  const u = (UNIQUE[fig.id] || {}).art;
+  if (u && ARCH[u]) return u;
+  const prop = (window.PX && PX.SPEC[fig.id]) ? PX.SPEC[fig.id].split('|')[2] : '';
+  if (prop && PROP_ART[prop] && ARCH[PROP_ART[prop]]) return PROP_ART[prop];
+  return CLASS_ART[fig.class] || 'gun';
+}
+
 /* ---------- 状态 ---------- */
 let G = null;
 function newGame(fig) {
@@ -31,9 +57,9 @@ function newGame(fig) {
     heat: 0, crisis: 0, coolT: 0, crisisCount: 0,
     /* ---- 舆论风向 ---- */
     wind: 'calm', windT: 22,
-    best: +(localStorage.getItem('sd-best') || 0),
+    best: +(localStorage.getItem('cyberpets:sd-best') || localStorage.getItem('sd-best') || 0),
     /* ---- 英雄专属武学运行时 ---- */
-    art: (UNIQUE[fig.id] || {}).art || 'gun',
+    art: artOf(fig),
     artLv: 1,
     hero: {                 // 每局重置的专属计数器
       kickN: 0, tianCount: 0, lianN: 0, hitOne: 0, sameTgt: null,
@@ -123,6 +149,7 @@ function startGame() {
     }
     G.dmgTxt.push({ x: G.P.x, y: G.P.y - 70, v: '拖动屏幕走位 · 站定自动开火', life: 3.5, color: '#ffd97a' });
     document.getElementById('ovPick').classList.add('hide');
+    document.body.classList.remove('picking');
     document.getElementById('ovEnd').classList.add('hide');
     const wc = document.getElementById('who').getContext('2d');
     wc.clearRect(0, 0, 64, 64);
@@ -348,7 +375,7 @@ function step(dt) {
   if (G.crisis > 0) {
     G.crisis -= dt;
     if (G.crisis <= 0) {
-      /* 撑过塌房：清屏 + 回血 + 立即升级 */
+      /* 撑过翻车：清屏 + 回血 + 立即升级 */
       G.crisisCount++;
       G.enemies.forEach(e => {
         G.kills++;
@@ -370,7 +397,7 @@ function step(dt) {
   } else if (G.heat >= 100) {
     /* 必须先判满再衰减，否则永远差最后一帧够不到 100 */
     G.crisis = 8;
-    G.dmgTxt.push({ x: P.x, y: P.y - 46, v: '⚠ 塌房危机！撑住 8 秒', life: 2, color: '#ff6b6b' });
+    G.dmgTxt.push({ x: P.x, y: P.y - 46, v: '⚠ 翻车危机！撑住 8 秒', life: 2, color: '#ff6b6b' });
   } else {
     G.heat = Math.max(0, G.heat - WIND[G.wind].decay * dt);
   }
@@ -549,7 +576,7 @@ function step(dt) {
   G.dmgTxt = G.dmgTxt.filter(d => { d.life -= dt; d.y -= 34 * dt; return d.life > 0; });
   if (G._bolt) G._bolt = G._bolt.filter(b => (b.t -= dt) > 0);
 
-  if (G.t > G.best) { G.best = G.t; localStorage.setItem('sd-best', G.best.toFixed(1)); }
+  if (G.t > G.best) { G.best = G.t; localStorage.setItem('cyberpets:sd-best', G.best.toFixed(1)); }
   syncHud();
 }
 
@@ -1340,7 +1367,7 @@ function syncHud() {
   const hw = document.getElementById('heatWrap'), hb = document.getElementById('heat');
   hb.style.width = G.heat + '%';
   document.getElementById('heatTx').textContent =
-    G.crisis > 0 ? `⚠ 塌房危机 ${G.crisis.toFixed(1)}s` : `热度 ${Math.round(G.heat)} / 100`;
+    G.crisis > 0 ? `⚠ 翻车危机 ${G.crisis.toFixed(1)}s` : `热度 ${Math.round(G.heat)} / 100`;
   hw.classList.toggle('warn', G.heat > 75 || G.crisis > 0);
   /* 风向 */
   const w = WIND[G.wind];
@@ -1394,7 +1421,7 @@ addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault();
 document.getElementById('btnGo').onclick = startGame;
 /* 兜底：click 未触发时 pointerdown 直接触发（避免极端环境下点不动） */
 document.getElementById('btnGo').addEventListener('pointerdown', e => { e.preventDefault(); if (!(typeof G !== 'undefined' && G)) startGame(); });
-document.getElementById('btnAgain').onclick = () => { document.getElementById('ovEnd').classList.add('hide'); shufflePicks(); document.getElementById('ovPick').classList.remove('hide'); G.mode = 'pick'; };
+document.getElementById('btnAgain').onclick = () => { document.getElementById('ovEnd').classList.add('hide'); shufflePicks(); document.getElementById('ovPick').classList.remove('hide'); document.body.classList.add('picking'); G.mode = 'pick'; };
 document.getElementById('btnShuffle').onclick = shufflePicks;
 
 /* ---------- 等比缩放适配任意窗口 ---------- */

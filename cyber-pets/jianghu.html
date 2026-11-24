@@ -46,7 +46,7 @@ html,body{height:100%;background:#0a0910;overflow:hidden;
 #homeArt{height:150px;border-radius:9px;position:relative;overflow:hidden;
   background:linear-gradient(180deg,#241d33,#14111d);border:1px solid var(--line);margin-bottom:9px}
 #homeArt canvas{position:absolute;inset:0;width:100%;height:100%}
-#idleTxt{position:absolute;left:0;right:0;bottom:0;padding:9px;text-align:center;
+#idleTxt{position:static;margin:6px 0 0;padding:5px 10px;text-align:center;border-radius:6px;background:rgba(10,9,15,.55);
   background:linear-gradient(0deg,rgba(8,7,12,.92),transparent);font-size:10.5px;line-height:1.8}
 #idleTxt b{color:var(--light);font-size:11.5px}
 .btnrow{display:flex;gap:8px;margin-bottom:8px}
@@ -113,7 +113,7 @@ html,body{height:100%;background:#0a0910;overflow:hidden;
 
 /* ===== 底部导航 ===== */
 #tabbar{flex:none;display:flex;background:#14111d;border-top:1px solid var(--line)}
-.tb{flex:1;text-align:center;padding:7px 0 6px;cursor:pointer;font-size:9.5px;color:var(--ink2)}
+.tb{flex:1;text-align:center;padding:8px 0 7px;cursor:pointer;font-size:10.5px;color:var(--ink2)}
 .tb i{font-style:normal;display:block;font-size:17px;line-height:1.25}
 .tb.on{color:var(--gold2)}
 .tb.on i{filter:drop-shadow(0 0 5px rgba(212,176,98,.5))}
@@ -168,6 +168,12 @@ html,body{height:100%;background:#0a0910;overflow:hidden;
 #toast.on{opacity:1}
 /* 新获得 */
 #newOv .big{font-size:22px;color:var(--light);font-weight:800;letter-spacing:4px}
+/* 弹窗要盖干净：.ov 默认 .94 半透，新侠客卡之间的缝里会透出首页文字 */
+#newOv{background:#0b0a10;z-index:60}
+/* 7 张卡在 3 列里会落单成 3+3+1；按可用宽度自动排成 4+3 */
+#newList{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))!important}
+/* .btn 全局带 flex:1，放进 .ov（纵向 flex 容器）会把按钮拉成整屏高 */
+#newOv .btn{flex:none}
 </style>
 </head>
 <body>
@@ -186,11 +192,11 @@ html,body{height:100%;background:#0a0910;overflow:hidden;
     <div class="pg on" id="pgHome">
       <div id="homeArt">
         <canvas id="homeCv" width="480" height="150"></canvas>
-        <div id="idleTxt">正在结算挂机收益…</div>
       </div>
+      <div id="idleTxt">正在结算挂机收益…</div>
       <div class="btnrow">
-        <button class="btn rd" id="btnQuick">挑 战 关 卡</button>
-        <button class="btn bl" id="btnIdle10">快 速 挂 机</button>
+        <button class="btn" id="btnQuick">挑 战 关 卡</button>
+        <button class="btn gh" id="btnIdle10">快 速 挂 机</button>
       </div>
       <div class="card">
         <h4>江 湖 状 态</h4>
@@ -314,7 +320,7 @@ html,body{height:100%;background:#0a0910;overflow:hidden;
   <div class="ov hide" id="newOv">
     <div class="big">新 侠 客</div>
     <div class="sub" style="margin:6px 0 12px">以下高手已加入你的阵营</div>
-    <div id="newList" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%"></div>
+    <div id="newList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px;width:100%;justify-items:center"></div>
     <button class="btn" id="newClose" style="width:70%;margin-top:16px">好 的</button>
   </div>
 
@@ -322,8 +328,9 @@ html,body{height:100%;background:#0a0910;overflow:hidden;
   <div class="ver">v1.1 · 平衡版</div>
 </div>
 
-<script src="hall-data.js?v=20261022d"></script>
-<script src="portrait.js?v=20261022d"></script>
-<script src="jianghu.js?v=20261022d"></script>
+<script src="hall-data.js?v=20261124d"></script>
+<script src="pixel.js?v=20261124d"></script>
+<script src="portrait.js?v=20261124d"></script>
+<script src="jianghu.js?v=20261124d"></script>
 </body>
 </html>

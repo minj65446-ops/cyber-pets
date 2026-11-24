@@ -25,7 +25,7 @@ const ROLE = {
 };
 const ENEMY = {
   fan:   { name: '黑粉',   hp: W => 55 + W * 26,  spd: 20,  dmg: 1, bounty: 4 },
-  mail:  { name: '举报信', hp: W => 130 + W * 55, spd: 13,  dmg: 2, bounty: 10 },
+  mail:  { name: '质询函', hp: W => 130 + W * 55, spd: 13,  dmg: 2, bounty: 10 },
   bot:   { name: '风控机', hp: W => 280 + W * 110, spd: 8.5, dmg: 3, bounty: 18 },
   boss:  { name: '舆论海啸', hp: W => 800 + W * 240, spd: 5, dmg: 5, bounty: 80, boss: true },
 };
@@ -39,7 +39,7 @@ function newGame() {
     towers: [], enemies: [], shots: [], parts: [], floats: [],
     spawnQ: [], spawnT: 0, waveGap: 3, betweenWaves: true,
     hand: [], sel: -1, hover: -1,
-    best: +(localStorage.getItem('td-best') || 0),
+    best: +(localStorage.getItem('cyberpets:td-best') || localStorage.getItem('td-best') || 0),
   };
 }
 G = newGame();
@@ -205,7 +205,7 @@ function step(dt) {
       const bonus = 40 + G.wave * 10;
       G.heat = Math.min(999, G.heat + bonus);
       float(cv.width / 2, 120, '波次奖励 🔥+' + bonus, '#7dd87d');
-      if (G.wave > G.best) { G.best = G.wave; localStorage.setItem('td-best', G.best); }
+      if (G.wave > G.best) { G.best = G.wave; localStorage.setItem('cyberpets:td-best', G.best); }
     }
   }
 
@@ -344,7 +344,7 @@ function step(dt) {
 function hurt(e, dmg) {
   e.hp -= dmg;
   if (e.hp <= 0 && e.cfg) {
-    /* boss 死亡全场清杂 */
+    /* boss 倒下全场清杂 */
     if (e.kind === 'boss') {
       G.enemies.forEach(o => { if (o !== e && o.hp > 0) o.hp -= 120; });
       float(e.x, rowCY(e.row) - 30, '海啸退去！', '#f0d488');
@@ -369,10 +369,10 @@ function render(t) {
   ctx.fillStyle = '#0d1420';
   ctx.fillRect(0, 0, W, H);
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    ctx.fillStyle = (r + c) % 2 ? '#173225' : '#1a3a2a';
+    ctx.fillStyle = (r + c) % 2 ? '#1d4232' : '#224d3a';
     ctx.fillRect(cellX(c), cellY(r), CELL, CELL);
   }
-  ctx.strokeStyle = 'rgba(255,255,255,.035)';
+  ctx.strokeStyle = 'rgba(160,220,190,.14)';
   ctx.lineWidth = 1;
   for (let c = 0; c <= COLS; c++) { ctx.beginPath(); ctx.moveTo(cellX(c), Y0); ctx.lineTo(cellX(c), Y0 + ROWS * CELL); ctx.stroke(); }
   for (let r = 0; r <= ROWS; r++) { ctx.beginPath(); ctx.moveTo(X0, cellY(r)); ctx.lineTo(X0 + COLS * CELL, cellY(r)); ctx.stroke(); }
@@ -559,8 +559,9 @@ function pickCell(ev) {
 }
 cv.addEventListener('mousemove', ev => { G.hover = pickCell(ev); });
 cv.addEventListener('mouseleave', () => { G.hover = -1; });
-cv.addEventListener('click', ev => {
-  G.hover = pickCell(ev);          /* 点击时重算，避免 hover 未更新导致落空 */
+/* 按当前 G.hover 结算一次「放置 / 升级」。鼠标与触屏共用同一条路径，
+   避免两边逻辑各写一份后出现「鼠标能放、手指放不下」。 */
+function actOnCell() {
   if (G.mode !== 'play' || G.hover < 0) return;
   const col = G.hover % COLS, row = Math.floor(G.hover / COLS);
   const t = G.towers.find(x => x.col === col && x.row === row);
@@ -573,6 +574,7 @@ cv.addEventListener('click', ev => {
   }
   if (G.sel < 0) return;
   const h = G.hand[G.sel];
+  if (!h) return;
   const s = FIGURES.find(x => x.id === h.id);
   if (G.heat < (TIER_COST[s.tier] || 100)) {
     float(cellX(col) + CELL / 2, cellY(row) + 30, '热度不足 🔥' + (TIER_COST[s.tier] || 100), '#ff6b6b');
@@ -580,13 +582,22 @@ cv.addEventListener('click', ev => {
   }
   place(h, col, row);
   updateHandUI();
+}
+cv.addEventListener('click', ev => {
+  G.hover = pickCell(ev);          /* 点击时重算，避免 hover 未更新导致落空 */
+  actOnCell();
 });
-/* 触摸：直接按触点拾格（避免 300ms 延迟与 click 双触发） */
+/* 触摸：按下即落塔。
+   旧写法只写 G.hover 再 preventDefault，click 被吞掉 → 手机上永远放不下塔。
+   现在按同一套 actOnCell 结算，preventDefault 只用来挡掉随后的重复 click。 */
 cv.addEventListener('touchstart', ev => {
   if (!ev.touches.length) return;
   const t = ev.touches[0];
   G.hover = pickCell({ clientX: t.clientX, clientY: t.clientY });
-  if (G.hover >= 0) ev.preventDefault();
+  if (G.hover >= 0) {
+    ev.preventDefault();
+    actOnCell();
+  }
 }, { passive: false });
 
 /* ---------- 按钮 ---------- */

@@ -9,7 +9,10 @@ const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const clamp = (v, a = 0, b = 100) => Math.max(a, Math.min(b, v));
 
-const SAVE_KEY = 'cyber-pets-v1';
+/* 存档键带命名空间前缀：Toy 里页面跑在 bilibili.com 域下，
+   裸键名会和别的 Toy 撞车，也会被用户清缓存时一起清掉。 */
+const SAVE_KEY = 'cyberpets:save:v1';
+const LEGACY_KEY = 'cyber-pets-v1';     // 老版本键名，只读一次做迁移
 
 /* ---------------- 状态 ---------------- */
 const defaultState = () => ({
@@ -22,6 +25,16 @@ const defaultState = () => ({
   seen: [],           // 对话历史
   wins: 0,
   losses: 0,
+  /* ---- 12 周赛季 ---- */
+  seasonNo: 1,
+  fans: 0,            // 当前赛季粉丝
+  signed: [],         // 本赛季已签约角色 id
+  slots: [null, null, null],   // 3 个流量位
+  weekFans: 0,        // 本周新增粉丝
+  weekDone: 0,        // 已结算到第几周
+  weekLog: [],        // 每周战绩
+  hall: [],           // 历史赛季清算记录
+  savedAt: 0,         // 最后写入时间，云存档合并用
 });
 function initStats(o) {
   PETS.forEach(p => {
@@ -34,7 +47,14 @@ let S = initStats(load());
 
 function load() {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    let raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) {
+      const old = localStorage.getItem(LEGACY_KEY);
+      if (old) {
+        raw = old;
+        try { localStorage.setItem(SAVE_KEY, old); localStorage.removeItem(LEGACY_KEY); } catch (e) {}
+      }
+    }
     if (raw) {
       const o = JSON.parse(raw);
       o.stats = o.stats || {};
@@ -43,9 +63,277 @@ function load() {
   } catch (e) {}
   return defaultState();
 }
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+function save() {
+  S.savedAt = Date.now();
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {}
+  pushCloud();
+}
+
+/* ---------------- Toy SDK 桥（只在 Toy 容器内生效） ---------------- */
+let _cloudT = null;
+/* 云存档不逐次写：攒 2.5 秒写一次，避免把每次点击都打到云存储上（Toy 侧有限流） */
+function pushCloud() {
+  if (!window.ToyBridge || !ToyBridge.state().ok) return;
+  clearTimeout(_cloudT);
+  _cloudT = setTimeout(() => { ToyBridge.saveCloud(S, SAVE_KEY); }, 2500);
+}
+
+function toyBoot() {
+  if (!window.ToyBridge) return;
+  ToyBridge.boot().then(st => {
+    if (!st || !st.ok) return;
+    const bar = $('#toyBar');
+    if (bar) bar.classList.remove('hide');
+    if ($('#toyWho')) $('#toyWho').textContent = (st.user && st.user.nickname) || 'Toy 已连接';
+    if ($('#toyTri') && st.action) {
+      const a = st.action;
+      $('#toyTri').textContent = '点赞' + (a.liked ? '✓' : '—') + ' 投币' + (a.coined ? '✓' : '—') + ' 收藏' + (a.faved ? '✓' : '—');
+    }
+    return ToyBridge.loadCloud(SAVE_KEY).then(cloud => {
+      if (cloud && cloud.savedAt && cloud.savedAt > (S.savedAt || 0)) {
+        S = initStats(Object.assign(defaultState(), cloud));
+        save();
+        renderPicker(); renderStats(); renderDetail(); renderItems(); renderSeason();
+        say('云存档比本地新，已同步。');
+      }
+    });
+  }).catch(() => {});
+}
+
+/* 分享图：程序化头像 + 本赛季战绩，Toy 里走 SDK，普通网页里退回下载 */
+function shareCard() {
+  const c = document.createElement('canvas');
+  c.width = 600; c.height = 800;
+  const g = c.getContext('2d');
+  g.fillStyle = '#f4f1ea'; g.fillRect(0, 0, 600, 800);
+  g.fillStyle = '#16352f'; g.fillRect(0, 0, 600, 132);
+  g.fillStyle = '#c3e88d'; g.font = 'bold 42px "PingFang SC","Microsoft YaHei",sans-serif';
+  g.fillText('赛博人物志', 40, 72);
+  g.fillStyle = '#8fb866'; g.font = '15px ui-monospace,monospace';
+  g.fillText('CYBER PERSONA · 掌机养成', 40, 104);
+
+  const bx = 40, by = 166, bw = 520, bh = 372;
+  g.fillStyle = '#fffdf8'; g.fillRect(bx, by, bw, bh);
+  g.strokeStyle = '#e2dccf'; g.strokeRect(bx + .5, by + .5, bw - 1, bh - 1);
+  const tmp = document.createElement('canvas'); tmp.width = tmp.height = 300;
+  drawPet(tmp.getContext('2d'), cur(), 300, S.mood, 0);
+  g.drawImage(tmp, bx + (bw - 300) / 2, by + 24);
+  g.textAlign = 'center';
+  g.fillStyle = '#1a1a1a'; g.font = 'bold 30px "PingFang SC",sans-serif';
+  g.fillText(cur().name, 300, by + 372 - 40);
+  g.fillStyle = '#5b5852'; g.font = '15px ui-monospace,monospace';
+  g.fillText(cur().alias + ' · ' + cur().tier, 300, by + 372 - 16);
+  g.textAlign = 'left';
+
+  const rows = [
+    ['赛季', 'S' + S.seasonNo + ' · 第 ' + weekOf() + '/12 周'],
+    ['粉丝', S.fans + ' / ' + SEASON.fanGoal],
+    ['签约', S.signed.length + ' / ' + SEASON.signGoal],
+    ['等级', 'LV.' + S.level],
+  ];
+  rows.forEach((r, i) => {
+    const y = 600 + i * 42;
+    g.fillStyle = '#8d887d'; g.font = '14px ui-monospace,monospace'; g.fillText(r[0], 44, y);
+    g.fillStyle = '#1a1a1a'; g.font = 'bold 21px ui-monospace,monospace'; g.fillText(r[1], 150, y);
+  });
+  g.fillStyle = '#9b968b'; g.font = '12px sans-serif';
+  g.fillText('角色均为虚构 · 非商业用途', 44, 776);
+
+  const url = c.toDataURL('image/png');
+  const toyOn = window.ToyBridge && ToyBridge.state().ok;
+  if (toyOn) {
+    ToyBridge.shareImage(url, '赛博人物志 · ' + cur().name).then(ok => {
+      if (!ok) ToyBridge.downloadImage(url, 'cyber-pets.png');
+      say(ok ? '分享图已拉起 Toy 分享面板。' : '分享面板没响应，已改为导出图片。');
+    });
+  } else {
+    if (window.ToyBridge) ToyBridge.downloadImage(url, 'cyber-pets.png');
+    say('已生成分享图（浏览器里直接下载 PNG）。');
+  }
+}
+
+/* 老存档没有赛季字段，补默认值（不重置任何已有进度） */
+(function migrateSeason() {
+  const d = defaultState();
+  ['seasonNo', 'fans', 'signed', 'slots', 'weekFans', 'weekDone', 'weekLog', 'hall'].forEach(k => {
+    if (S[k] === undefined) S[k] = d[k];
+  });
+  if (!Array.isArray(S.slots) || S.slots.length !== 3) S.slots = [null, null, null];
+  if (!Array.isArray(S.signed)) S.signed = [];
+  S.slots = S.slots.map(id => (S.signed.indexOf(id) >= 0 ? id : null));
+})();
 
 const cur = () => PETS.find(p => p.id === S.current) || PETS[0];
+
+/* =========================================================
+   12 周赛季：一周 7 天，12 周一个循环。
+   复用现有积木 —— S.day 天数计数器、EVENTS 事件卡 good/bad 结算、
+   下一天的资源产出。「周」只是 S.day 的一层派生，不新增时间系统。
+   ========================================================= */
+const SEASON = {
+  weeks: 12,
+  slotN: 3,               // 每周 3 个流量位
+  signGoal: 7,            // 12 周签 7 人（可签池正好 7 位，8 人里 1 位封印）
+  fanGoal: 4000,          // 12 周冲 4000 粉
+  weekFans: 333,          // 4000 / 12 取整，作为周目标
+  signFans: { R: 120, SR: 200, SSR: 320, UR: 480 },
+  minMood: 60,            // 签约心情门槛
+  keepRate: 0.3,          // 清算后保留的粉丝比例
+};
+
+const weekOf = () => Math.min(SEASON.weeks, Math.floor((S.day - 1) / 7) + 1);
+const rawWeek = () => Math.floor((S.day - 1) / 7) + 1;
+const dayInWeek = () => ((S.day - 1) % 7) + 1;
+
+/* 可签池 = 8 位里除封印角色 */
+const signable = () => PETS.filter(p => !p.nc);
+
+/* 每周轮换 3 个签约位：按周序号整体滑动，12 周里每位都会轮到多次 */
+function weekPool() {
+  const pool = signable();
+  const start = ((weekOf() - 1) * SEASON.slotN) % pool.length;
+  return [0, 1, 2].map(i => pool[(start + i) % pool.length]);
+}
+
+/* 事件池按周奇偶轮换：这周看这 5 张，下周换另外 5 张 */
+function weekEvents() {
+  const w = weekOf();
+  const list = EVENTS.filter((_, i) => (i + w) % 2 === 0);
+  return list.length ? list : EVENTS;
+}
+
+/* 流量位每天产粉：角色「流量」属性 × 心情修正 */
+function slotYield() {
+  let fans = 0;
+  S.slots.forEach(id => {
+    if (!id) return;
+    const st = S.stats[id];
+    if (!st) return;
+    fans += Math.max(1, Math.round((st.流量 || 0) / 14 * (1 + (S.mood - 50) / 200)));
+  });
+  return fans;
+}
+
+function signPet(id) {
+  const p = PETS.find(x => x.id === id);
+  if (!p || p.nc) return;
+  if (S.signed.indexOf(id) >= 0) { say(`「${p.name}」已经在名单里了。`); return; }
+  if (!weekPool().some(x => x.id === id)) { say(`「${p.name}」本周没有档期，下周再来看看。`); return; }
+  if (S.mood < SEASON.minMood) { say(`心情 ${Math.round(S.mood)}，太低了。「${p.name}」说改天再谈。`); return; }
+  S.signed.push(id);
+  const gain = SEASON.signFans[p.tier] || 100;
+  S.fans += gain;
+  S.weekFans += gain;
+  S.mood = clamp(S.mood - 10);
+  say(`签约成功：「${p.name}」${p.tier}，粉丝 +${gain}。`);
+  if (S.signed.length === SEASON.signGoal) say('七位都签下了。剩下五周，冲粉丝。');
+  refreshAfterAction();
+  renderSeason();
+}
+
+/* 流量位：空 → 第 1 位 → 第 2 位 → … → 空，循环切换 */
+function cycleSlot(i) {
+  if (!S.signed.length) { say('先签一位，再谈流量位。'); return; }
+  const curId = S.slots[i];
+  const idx = S.signed.indexOf(curId);
+  S.slots[i] = idx === -1 ? S.signed[0] : (idx === S.signed.length - 1 ? null : S.signed[idx + 1]);
+  save();
+  renderSeason();
+  say(S.slots[i] ? `流量位 ${i + 1}：${PETS.find(p => p.id === S.slots[i]).name}。` : `流量位 ${i + 1} 空出来了。`);
+}
+
+/* 周末结算：达标给额外粉丝，写进本周战绩 */
+function settleWeek(wkArg) {
+  const w = wkArg || weekOf();
+  const got = S.weekFans;
+  let bonus = 0;
+  if (got >= SEASON.weekFans) {
+    bonus = 60;
+    S.fans += bonus;
+    S.mood = clamp(S.mood + 4);
+    say(`第 ${w} 周结算：本周 +${got} 粉，达标，额外 +${bonus}。`);
+  } else {
+    say(`第 ${w} 周结算：本周 +${got} 粉，差 ${SEASON.weekFans - got} 粉达标。`);
+  }
+  (S.weekLog = S.weekLog || []).push({ w, fans: got, bonus });
+  if (S.weekLog.length > 24) S.weekLog.shift();
+  S.weekFans = 0;
+  S.weekDone = w;
+}
+
+/* 第 12 周结束：按粉丝 + 签约数评级，保留 30% 粉丝进下一季 */
+function endSeason() {
+  const fans = S.fans, signed = S.signed.length;
+  let rank = 'A';
+  if (signed >= SEASON.signGoal && fans >= SEASON.fanGoal) rank = 'SSS';
+  else if (fans >= 3000) rank = 'SS';
+  else if (fans >= 2000) rank = 'S';
+  const keep = Math.floor(fans * SEASON.keepRate);
+  (S.hall = S.hall || []).push({ season: S.seasonNo, rank, fans, signed });
+  const ov = $('#seasonOv');
+  if (ov) {
+    $('#ovTitle').textContent = `第 ${S.seasonNo} 赛季 · 清算`;
+    $('#ovRank').textContent = rank;
+    $('#ovBody').innerHTML =
+      `签约 <b>${signed} / ${SEASON.signGoal}</b> 位　·　粉丝 <b>${fans}</b> / ${SEASON.fanGoal}<br>` +
+      (rank === 'SSS' ? '顶流达成，赛季满分。' : '没到顶流，但账留下了。') + '<br>' +
+      `清算后保留 <b>30%</b> 粉丝（<b>${keep}</b>）和全部等级，签约名单清空，重新开季。`;
+    ov.classList.remove('hide');
+  }
+  S._pending = { keep, rank, fans, signed };
+  save();
+}
+
+function startNextSeason() {
+  const keep = (S._pending && S._pending.keep) || Math.floor(S.fans * SEASON.keepRate);
+  S.seasonNo++;
+  S.day = 1;
+  S.fans = keep;
+  S.signed = [];
+  S.slots = [null, null, null];
+  S.weekFans = 0;
+  S.weekDone = 0;
+  S.weekLog = [];
+  S._pending = null;
+  const ov = $('#seasonOv');
+  if (ov) ov.classList.add('hide');
+  say(`第 ${S.seasonNo} 赛季开始。带着 ${keep} 位老粉，重新签人。`);
+  save();
+  renderSeason(); renderStats(); renderPicker(); renderDetail();
+}
+
+function renderSeason() {
+  if (!$('#sPool')) return;
+  const wk = weekOf();
+  $('#sNo').textContent = S.seasonNo;
+  $('#sWeek').textContent = wk;
+  $('#sLeft').textContent = Math.max(0, 7 - dayInWeek() + 1);
+  $('#wkBar').innerHTML = Array.from({ length: SEASON.weeks }, (_, i) => {
+    const w = i + 1;
+    const cls = (w < wk || S.weekDone >= w) ? 'done' : (w === wk ? 'now' : '');
+    return `<i class="${cls}">${w}</i>`;
+  }).join('');
+  $('#sFans').textContent = S.fans;
+  $('#sSign').textContent = S.signed.length;
+  $('#sWeekFans').textContent = `${S.weekFans} / ${SEASON.weekFans}`;
+
+  $('#sPool').innerHTML = weekPool().map(p => {
+    const signed = S.signed.indexOf(p.id) >= 0;
+    const can = !signed && S.mood >= SEASON.minMood;
+    const label = signed ? '已签约' : (can ? '签约 +' + (SEASON.signFans[p.tier] || 100) : '心情不足');
+    return `<div class="sp ${signed ? 'signed' : ''}" data-sign="${p.id}">
+      <div class="n">${p.name}</div>
+      <div class="t">${p.tier} · ${p.alias}</div>
+      <div class="b ${can ? 'can' : ''}">${label}</div></div>`;
+  }).join('');
+  $$('#sPool .sp').forEach(el => { el.onclick = () => signPet(el.dataset.sign); });
+
+  $('#sSlots').innerHTML = S.slots.map((id, i) => {
+    const p = id ? PETS.find(x => x.id === id) : null;
+    return `<div class="sl ${id ? 'has' : ''}" data-slot="${i}">${p ? p.name : '空位 ' + (i + 1)}</div>`;
+  }).join('');
+  $$('#sSlots .sl').forEach(el => { el.onclick = () => cycleSlot(+el.dataset.slot); });
+}
 
 /* ---------------- 像素绘制 ---------------- */
 /**
@@ -68,128 +356,12 @@ function px(ctx, x, y, w, h, color, gs) {
   ctx.fillRect(x * gs, y * gs, w * gs, h * gs);
 }
 
-/** 通用：头身比 1:1 的 Q 版肖像，带各自特征 */
-function drawPet(ctx, pet, size, mood = 80, t = 0) {
-  const gs = size / 40;           // 40 格
+/** 立绘本体交给 pixel.js 的参数化引擎（体型×发型×道具×附加件×表情）。
+    这里只负责把 data.js 的 pet 翻译成引擎要的 figure 形状。 */
+function drawPet(ctx, pet, size, mood, t) {
   const P = PALETTE[pet.id] || PALETTE.laozhou;
-  ctx.clearRect(0, 0, size, size);
-  ctx.imageSmoothingEnabled = false;
-
-  // 背景
-  px(ctx, 0, 0, 40, 40, P.bg, gs);
-  // 站台
-  px(ctx, 6, 33, 28, 2, 'rgba(0,0,0,.08)', gs);
-  px(ctx, 8, 35, 24, 1, 'rgba(0,0,0,.05)', gs);
-
-  const bob = Math.round(Math.sin(t / 500) * 0.6);
-  const oy = bob;
-
-  // 身体
-  px(ctx, 13, 22 + oy, 14, 11, P.cloth, gs);
-  px(ctx, 13, 22 + oy, 14, 2, 'rgba(255,255,255,.14)', gs);
-  // 腿
-  px(ctx, 15, 32 + oy, 4, 2, P.cloth, gs);
-  px(ctx, 21, 32 + oy, 4, 2, P.cloth, gs);
-  // 手
-  px(ctx, 11, 24 + oy, 2, 6, P.skin, gs);
-  px(ctx, 27, 24 + oy, 2, 6, P.skin, gs);
-
-  // 脖子/头
-  px(ctx, 14, 14 + oy, 12, 9, P.skin, gs);   // 头
-  px(ctx, 13, 13 + oy, 14, 3, P.hair, gs);   // 头发
-
-  // 各自特征
-  switch (pet.id) {
-    case 'yujie':
-      px(ctx, 12, 11 + oy, 16, 5, P.hair, gs);
-      px(ctx, 11, 13 + oy, 2, 4, P.hair, gs);
-      px(ctx, 27, 13 + oy, 2, 4, P.hair, gs);
-      px(ctx, 15, 16 + oy, 2, 1, '#3a2a20', gs); // 眉
-      px(ctx, 23, 16 + oy, 2, 1, '#3a2a20', gs);
-      px(ctx, 16, 19 + oy, 8, 1, '#b98a72', gs);
-      px(ctx, 13, 24 + oy, 14, 3, P.acc, gs);   // 围裙带
-      break;
-    case 'guige':
-      px(ctx, 14, 11 + oy, 12, 3, P.hair, gs);
-      px(ctx, 16, 17 + oy, 2, 1, '#2a2a2a', gs);
-      px(ctx, 22, 17 + oy, 2, 1, '#2a2a2a', gs);
-      px(ctx, 16, 20 + oy, 8, 1, '#6b4a35', gs);
-      px(ctx, 16, 18 + oy, 1, 1, '#2a2a2a', gs);
-      px(ctx, 23, 18 + oy, 1, 1, '#2a2a2a', gs);
-      if (mood > 60) { // 笑
-        px(ctx, 17, 21 + oy, 6, 1, '#6b4a35', gs);
-      }
-      break;
-    case 'laozhou':
-      px(ctx, 13, 11 + oy, 14, 2, P.hair, gs);
-      px(ctx, 12, 16 + oy, 3, 1, '#555', gs);
-      px(ctx, 25, 16 + oy, 3, 1, '#555', gs);
-      px(ctx, 15, 16 + oy, 2, 1, '#333', gs);
-      px(ctx, 23, 16 + oy, 2, 1, '#333', gs);
-      px(ctx, 15, 20 + oy, 10, 1, '#8b6b52', gs);
-      px(ctx, 13, 22 + oy, 14, 1, '#3a3f4b', gs); // 围裙
-      px(ctx, 9, 26 + oy, 3, 1, '#8a8f96', gs);   // 扳手
-      px(ctx, 10, 26 + oy, 1, 3, '#8a8f96', gs);
-      break;
-    case 'zhouzhou':
-      px(ctx, 12, 10 + oy, 16, 4, P.hair, gs);
-      px(ctx, 11, 13 + oy, 2, 8, P.hair, gs);
-      px(ctx, 27, 13 + oy, 2, 8, P.hair, gs);
-      px(ctx, 16, 17 + oy, 2, 1, '#1f1f2e', gs);
-      px(ctx, 22, 17 + oy, 2, 1, '#1f1f2e', gs);
-      px(ctx, 17, 20 + oy, 6, 1, '#c25b8a', gs);   // 口红
-      px(ctx, 28, 22 + oy, 4, 1, '#d1d5db', gs);   // 剪刀
-      px(ctx, 30, 22 + oy, 1, 2, '#d1d5db', gs);
-      px(ctx, 30, 23 + oy, 1, 2, '#d1d5db', gs);
-      break;
-    case 'niuge':
-      px(ctx, 12, 12 + oy, 16, 2, P.acc, gs);      // 蝙蝠头带
-      px(ctx, 13, 10 + oy, 3, 3, P.acc, gs);
-      px(ctx, 24, 10 + oy, 3, 3, P.acc, gs);
-      px(ctx, 15, 17 + oy, 3, 2, '#f8fafc', gs);   // 眼白
-      px(ctx, 22, 17 + oy, 3, 2, '#f8fafc', gs);
-      px(ctx, 16, 17 + oy, 1, 2, '#111', gs);
-      px(ctx, 23, 17 + oy, 1, 2, '#111', gs);
-      px(ctx, 17, 21 + oy, 6, 1, '#5b3a2a', gs);
-      px(ctx, 12, 21 + oy, 1, 3, P.skin, gs);      // 大臂
-      px(ctx, 27, 21 + oy, 1, 3, P.skin, gs);
-      break;
-    case 'nongcung':
-      px(ctx, 14, 11 + oy, 12, 3, P.hair, gs);
-      px(ctx, 16, 17 + oy, 2, 1, '#2b2b2b', gs);
-      px(ctx, 22, 17 + oy, 2, 1, '#2b2b2b', gs);
-      px(ctx, 16, 20 + oy, 8, 1, '#7a5a45', gs);
-      px(ctx, 13, 22 + oy, 14, 2, '#4b5563', gs);
-      break;
-    case 'kewin':
-      px(ctx, 13, 11 + oy, 14, 3, P.hair, gs);
-      px(ctx, 16, 17 + oy, 2, 1, '#333', gs);
-      px(ctx, 22, 17 + oy, 2, 1, '#333', gs);
-      px(ctx, 17, 20 + oy, 6, 1, '#8b6b52', gs);
-      px(ctx, 10, 25 + oy, 6, 1, '#f8fafc', gs);   // 键盘
-      px(ctx, 10, 26 + oy, 6, 3, '#f8fafc', gs);
-      px(ctx, 11, 27 + oy, 1, 1, '#111', gs);
-      px(ctx, 13, 27 + oy, 1, 1, '#111', gs);
-      break;
-    case 'lizu':
-      px(ctx, 13, 11 + oy, 14, 3, P.hair, gs);
-      px(ctx, 15, 17 + oy, 2, 1, '#222', gs);
-      px(ctx, 23, 17 + oy, 2, 1, '#222', gs);
-      px(ctx, 15, 20 + oy, 10, 1, '#6b4a35', gs);
-      px(ctx, 12, 22 + oy, 16, 1, '#0f172a', gs);  // 西装领
-      break;
-  }
-
-  // 红晕 / 心情
-  if (mood > 70) {
-    px(ctx, 14, 19 + oy, 2, 1, 'rgba(230,120,120,.35)', gs);
-    px(ctx, 24, 19 + oy, 2, 1, 'rgba(230,120,120,.35)', gs);
-  }
-  if (mood < 30) {
-    px(ctx, 16, 20 + oy, 8, 1, '#7a5a45', gs);
-    px(ctx, 17, 21 + oy, 1, 1, '#7a5a45', gs);
-    px(ctx, 22, 21 + oy, 1, 1, '#7a5a45', gs);
-  }
+  const fig = { id: pet.id, class: pet.species === 'abstract' ? 'stunt' : 'hard', palette: P };
+  PX.draw(ctx, fig, size, { t: t || 0, glow: pet.color, mood: mood });
 }
 
 /* ---------------- 掌机屏幕 ---------------- */
@@ -251,7 +423,7 @@ function feed() {
   addStat(p.id, '良心', rand(0, 2));
   say(`喂了一份${fav}。心情 +${rand(6, 14)}。`);
   if (Math.random() < 0.3) {
-    const e = pick(EVENTS);
+    const e = pick(weekEvents());
     say(`【事件】${e.title} —— ${e.text}`);
   }
   gainExp(4);
@@ -289,12 +461,18 @@ function rest() {
 }
 
 function nextDay() {
+  const fansGain = slotYield();       // 流量位先产粉，再推进日期
   S.day++;
   S.mood = clamp(S.mood - rand(3, 9));
   const p = cur();
   if (p.passive && p.id === 'yujie') addStat('yujie', '流量', -2);
+  if (fansGain) {
+    S.fans += fansGain;
+    S.weekFans += fansGain;
+    say(`流量位产出：粉丝 +${fansGain}。`);
+  }
   if (Math.random() < 0.55) {
-    const e = pick(EVENTS);
+    const e = pick(weekEvents());
     say(`【事件】${e.title} —— ${e.text}`);
     // 结果
     const good = Object.entries(e.good || {});
@@ -308,14 +486,29 @@ function nextDay() {
     S.mood = clamp(S.mood + (win ? rand(2, 8) : -rand(4, 12)));
   }
   gainExp(6);
+
+  /* 周末结算 / 赛季清算 */
+  if (S.day > 1 && (S.day - 1) % 7 === 0) {
+    settleWeek(rawWeek() - 1);          // 先把这一周结算掉（第 12 周也要结）
+    if (rawWeek() > SEASON.weeks) {
+      endSeason();
+      save();
+      renderStats();
+      renderSeason();
+      return;
+    }
+  }
+
   save();
   renderStats();
+  renderSeason();
 }
 
 function refreshAfterAction() {
   save();
   renderStats();
   renderDetail();
+  renderSeason();
 }
 
 /* ---------------- 渲染角色列表 ---------------- */
@@ -333,7 +526,7 @@ function renderPicker() {
     drawPet(c.getContext('2d'), p, 64, 80, 0);
     d.onclick = () => {
       if (p.nc) {
-        say(`「${p.name}」已被平台限流。你可以收藏他，但不能喂，也不能对战。`);
+        say(`「${p.name}」已被平台降权。你可以收藏他，但不能喂，也不能对战。`);
       }
       S.current = p.id;
       save();
@@ -477,7 +670,7 @@ function playerMove(idx) {
   B.hp -= dmg;
   updateHp();
   if (B.hp <= 0) {
-    blog(`<b>${B.pet.name}</b> 塌房了。你赢了。`);
+    blog(`<b>${B.pet.name}</b> 翻车了。你赢了。`);
     S.wins++; say(`对战胜利：${A.pet.name} 击败 ${B.pet.name}。`);
     addStat(A.pet.id, '流量', 5); gainExp(12); save(); renderStats();
     return;
@@ -516,11 +709,15 @@ $('#btnNext').onclick = nextDay;
 $('#btnNewFoe').onclick = () => { startBattle(); };
 $('#btnResetHp').onclick = () => { startBattle(); };
 $$('.moves button').forEach(b => b.onclick = () => playerMove(+b.dataset.move));
+if ($('#ovNext')) $('#ovNext').onclick = startNextSeason;
+if ($('#btnShare')) $('#btnShare').onclick = shareCard;
 
 /* ---------------- 启动 ---------------- */
 renderPicker();
 renderStats();
 renderDetail();
 renderItems();
-say('掌机已开机。DAY 1，请选择要养的那一位。');
-say('提示：每天都会发生一点事。多数时候你控制不了。');
+renderSeason();
+say(`掌机已开机。第 ${S.seasonNo} 赛季 · 第 ${weekOf()} 周，先签一位。`);
+say('提示：12 周一个赛季。每周只有 3 个签约位，签下的人越多，流量位能产的粉越多。');
+toyBoot();

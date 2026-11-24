@@ -24,7 +24,8 @@ const TIER_BASE = { R: 1.0, SR: 1.18, SSR: 1.42, UR: 1.72 };
 const STAR_CAP = { R: 3, SR: 4, SSR: 5, UR: 5 };
 
 /* ---------- 存档 ---------- */
-const SAVE_KEY = 'jh-save-v1';
+const SAVE_KEY = 'cyberpets:jh:v1';
+const LEGACY_KEY = 'jh-save-v1';     // 老键名，只读一次做迁移
 let S = null;
 /* 开局六人：前排 拳/拳/刀 扛伤，后排 剑/术/辅 输出与治疗 */
 const STARTER = ['niuge', 'dingzhen', 'zhouzhou', 'diaoyu', 'mabaoguo', 'baize'];
@@ -41,7 +42,11 @@ function defaultSave() {
 }
 function load() {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    let raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) {
+      const old = localStorage.getItem(LEGACY_KEY);
+      if (old) { raw = old; try { localStorage.setItem(SAVE_KEY, old); localStorage.removeItem(LEGACY_KEY); } catch (e) { } }
+    }
     S = raw ? Object.assign(defaultSave(), JSON.parse(raw)) : defaultSave();
   } catch (e) { S = defaultSave(); }
   /* 新档赠礼：直接给一支六人队伍（覆盖五流派），外加一次免费十连 */

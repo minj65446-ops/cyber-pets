@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>赛博人物志 · 守卫战</title>
+<link rel="icon" href="favicon.ico">
 <style>
 :root{
   --bg:#0b0a0f; --panel:#141220; --panel2:#1c1a2c; --line:#2c2940;
@@ -27,7 +28,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:10px;fl
 .brand{display:flex;align-items:baseline;gap:10px;min-width:0}
 .brand h1{font-size:19px;letter-spacing:1px;color:var(--gold2);white-space:nowrap}
 .brand h1 em{font-style:normal;color:var(--ink)}
-.brand .sub{font-size:10.5px;color:var(--ink2);letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand .sub{font-size:10.5px;color:var(--ink2);letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .home-link{font-size:11px;color:var(--gold);text-decoration:none;border:1px solid rgba(212,176,98,.4);padding:6px 12px;border-radius:4px;background:rgba(212,176,98,.06);white-space:nowrap}
 .home-link:hover{background:rgba(212,176,98,.16)}
 /* 顶栏 */
@@ -46,8 +47,11 @@ button.btn{
 button.btn:hover{border-color:var(--gold);background:linear-gradient(180deg,#3a3148,#242134)}
 button.btn:disabled{opacity:.4;cursor:default}
 /* 战场：flex 撑满剩余高度，canvas 等比缩放 */
-#stageBox{position:relative;flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);background:#0d1420;border-radius:8px;overflow:hidden}
-canvas{display:block;max-width:100%;max-height:100%;width:auto;height:auto;image-rendering:pixelated;object-fit:contain;touch-action:manipulation}
+#stageBox{position:relative;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--line);border-radius:8px;overflow:hidden;
+  /* 棋盘 840x470 等比，容器高度跟着走：竖屏不再上下留两大块空地，多出的高度留给底部 */
+  aspect-ratio:840/470;background:#0d1420}
+canvas{display:block;max-width:100%;max-height:100%;width:100%;height:100%;image-rendering:pixelated;object-fit:contain;touch-action:manipulation}
 /* 卡槽：固定高度，横向可滚动 */
 .hand{display:flex;gap:8px;padding:6px 8px;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto;overflow-y:hidden;flex:none;min-height:104px}
 .card{
@@ -77,16 +81,21 @@ canvas{display:block;max-width:100%;max-height:100%;width:auto;height:auto;image
 /* 版本徽标 */
 .ver{font-size:9px;color:var(--ink2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;letter-spacing:.5px}
 /* 矮屏（预览面板常见）压缩非关键元素 */
+@media (max-width: 520px){
+  .brand .sub{display:none}
+  .brand h1{font-size:17px;letter-spacing:.5px}
+  .home-link{font-size:10.5px;padding:5px 9px}
+}
 @media (max-height: 640px){
   .brand .sub{display:none}
   .hint{display:none}
   .hud{padding:4px 6px}
   .hud .stat{padding:3px 8px;min-width:64px}
   .hud .stat small{display:none}
-  .hand{min-height:88px;padding:4px 6px}
-  .card{flex:0 0 70px;padding:3px 2px 4px}
-  .card canvas{width:38px;height:38px}
-  .card .nm{font-size:9.5px}
+  .hand{min-height:96px;padding:4px 6px}
+  .card{flex:0 0 76px;padding:4px 2px 5px}
+  .card canvas{width:42px;height:42px}
+  .card .nm{font-size:10.5px}
   .card .cls{display:none}
   .mask h2{font-size:19px}
   .mask p{font-size:11px;line-height:1.7}
@@ -108,7 +117,7 @@ canvas{display:block;max-width:100%;max-height:100%;width:auto;height:auto;image
     <div class="brand">
       <h1>赛博<em>守卫战</em></h1>
       <span class="ver" id="verTag">v2.1</span>
-      <span class="sub">放置塔防 · 23 位在册者参战 · 全角色虚构</span>
+      <span class="sub">放置塔防 · 45 位在册者可参战 · 全 53 位在册 · 角色均为虚构</span>
     </div>
     <a class="home-link" href="index.html">← 返回养成馆</a>
   </header>
@@ -147,8 +156,9 @@ canvas{display:block;max-width:100%;max-height:100%;width:auto;height:auto;image
   <div class="hint">提示：<b>狙击</b>全行输出 · <b>背刺</b>单体爆发 · <b>失控</b>范围站撸但自损 · <b>整活</b>减速控场 · <b>带队</b>唯一产热度位 —— 阵容里至少留一个带队。</div>
 </div>
 
-<script src="hall-data.js?v=20261021b"></script>
-<script src="portrait.js?v=20261021b"></script>
-<script src="td.js?v=20261021b"></script>
+<script src="hall-data.js?v=20261124d"></script>
+<script src="pixel.js?v=20261124d"></script>
+<script src="portrait.js?v=20261124d"></script>
+<script src="td.js?v=20261124d"></script>
 </body>
 </html>
